@@ -1,13 +1,13 @@
-package com.sparta.fcfs_project;
+package com.sparta.fcfsproject;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class FcfsProjectApplication {
+public class FcfsprojectApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(FcfsProjectApplication.class, args);
+		SpringApplication.run(FcfsprojectApplication.class, args);
 	}
 
 }

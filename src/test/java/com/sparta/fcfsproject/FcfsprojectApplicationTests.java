@@ -1,10 +1,10 @@
-package com.sparta.fcfs_project;
+package com.sparta.fcfsproject;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class FcfsProjectApplicationTests {
+class FcfsprojectApplicationTests {
 
 	@Test
 	void contextLoads() {
