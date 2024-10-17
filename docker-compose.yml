@@ -1,0 +1,76 @@
+version: '3'
+
+services:
+  database:
+    container_name: db
+    image: mysql:latest
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: 'Asia/Seoul'
+    ports:
+      - "3308:3306"
+    command:
+      - "mysqld"
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_unicode_ci"
+    networks:
+      - local_network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'   # CPU 50%
+          memory: 512M    # 메모리 512MB
+
+  application:
+    container_name: app
+    restart: always
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "80:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${SPRING_REDIS_PASSWORD}  # Redis 비밀번호 설정
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - local_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'   # CPU 50%
+          memory: 512M    # 메모리 512MB
+
+  redis:
+    container_name: redis
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${SPRING_REDIS_PASSWORD}
+    command: [ "redis-server", "--requirepass", "${SPRING_REDIS_PASSWORD}"   ]  # Redis 비밀번호 설정
+    networks:
+      - local_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'   # CPU 25%
+          memory: 256M    # 메모리 256MB
+
+networks:
+  local_network:
+    driver: bridge
