@@ -1,6 +1,7 @@
 package com.sparta.fcfsproject.auth.jwt;
 
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -12,6 +13,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.filter.GenericFilterBean;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 public class CustomLogoutFilter extends GenericFilterBean {
 
@@ -99,5 +101,14 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
         response.addCookie(cookie);
         response.setStatus(HttpServletResponse.SC_OK);
+
+        // JWT의 만료 시간을 가져와서 현재 시간과의 차이를 TTL로 설정
+        Long expirationTime = jwtUtil.getExpiration(refresh);
+        Long ttl = expirationTime - System.currentTimeMillis();
+
+        // 남은 TTL 만큼 Redis에 블랙리스트로 저장
+        if (ttl > 0) {
+            redisTemplate.opsForValue().set(refresh, "true", ttl, TimeUnit.MILLISECONDS);
+        }
     }
 }

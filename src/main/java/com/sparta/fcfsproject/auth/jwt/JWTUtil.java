@@ -54,6 +54,18 @@ public class JWTUtil {
                 .before(new Date());
     }
 
+    public Long getExpiration(String token) {
+        Date expiration = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getExpiration();
+
+        // 만료 시간을 밀리초로 반환
+        return expiration.getTime();
+    }
+
     public String createJwt(String category, String email, String role, Long expiredMs) {
 
         return Jwts.builder()

@@ -11,15 +11,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @RestController
-public class ReissueController {
+public class JwtReissueController {
 
     private final JWTUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public ReissueController(JWTUtil jwtUtil, RedisTemplate<String, Object> redisTemplate) {
+    public JwtReissueController(JWTUtil jwtUtil, RedisTemplate<String, Object> redisTemplate) {
 
         this.jwtUtil = jwtUtil;
         this.redisTemplate = redisTemplate;
@@ -31,6 +32,10 @@ public class ReissueController {
         //get refresh token
         String refresh = null;
         Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return new ResponseEntity<>("No cookies present", HttpStatus.BAD_REQUEST);
+        }
+
         for (Cookie cookie : cookies) {
             if (cookie.getName().equals("refresh")) {
                 refresh = cookie.getValue();
@@ -66,6 +71,11 @@ public class ReissueController {
             return new ResponseEntity<>("Refresh token not found in Redis", HttpStatus.BAD_REQUEST);
         }
 
+        // Redis에서 블랙리스트 확인
+        if (Objects.equals(redisTemplate.opsForValue().get(refresh), "true")) {
+            return new ResponseEntity<>("refresh token is blacklisted", HttpStatus.UNAUTHORIZED);
+        }
+
         //make new JWT
         String newAccess = jwtUtil.createJwt("access", email, role, 600000L);
         String newRefresh = jwtUtil.createJwt("refresh", email, role, 86400000L);
@@ -92,7 +102,5 @@ public class ReissueController {
 
         return cookie;
     }
-    //TODO 종료된 refresh토큰의 블랙리스트 구현해야 한다.
-    //TODO Redis에 저장할 경우 expiration 필요 없어짐? 이 부분 공부
     //TODO 중복 로그인 가능하도록 sessionId 추가
 }
