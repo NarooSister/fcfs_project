@@ -66,6 +66,25 @@ public class JWTUtil {
         return expiration.getTime();
     }
 
+    public String getSessionId(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("sessionId", String.class);  // sessionId를 claim에서 추출
+    }
+    public String createJwtWithSession(String category, String email, String role, String sessionId, Long expiredMs) {
+        return Jwts.builder()
+                .claim("category", category)
+                .claim("email", email)
+                .claim("role", role)
+                .claim("sessionId", sessionId)  // sessionId를 포함하여 JWT 생성
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
+                .signWith(secretKey)
+                .compact();
+    }
     public String createJwt(String category, String email, String role, Long expiredMs) {
 
         return Jwts.builder()

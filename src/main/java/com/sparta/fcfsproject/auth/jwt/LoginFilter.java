@@ -45,6 +45,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         //유저 정보
         String email = authentication.getName();
+        String sessionId = request.getSession().getId();  // 세션 ID 가져오기
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
@@ -53,10 +54,10 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
         //토큰 생성
         String access = jwtUtil.createJwt("access", email, role, 600000L);  // 10분
-        String refresh = jwtUtil.createJwt("refresh", email, role, 86400000L);  // 1일
+        String refresh = jwtUtil.createJwtWithSession("refresh", email, role, sessionId, 86400000L);  // 1일 만료, sessionId 포함
 
-        //Refresh 토큰 저장
-        addRefreshToken(email, refresh, 86400000L);
+        //Redis에 Refresh 토큰 저장 (sessionId를 포함)
+        redisTemplate.opsForValue().set(email + ":" + sessionId, refresh, 86400000L, TimeUnit.MILLISECONDS);
 
         //응답 설정
         response.setHeader("access", access);   // 응답 해더에 넣음
@@ -78,10 +79,6 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         cookie.setHttpOnly(true);   //js에서 접근 못하도록 막음
 
         return cookie;
-    }
-    public void addRefreshToken(String email, String refresh, Long expiredMs) {
-        // Redis에 토큰 저장, email을 키로 사용
-        redisTemplate.opsForValue().set(email, refresh, expiredMs, TimeUnit.MILLISECONDS);
     }
 }
 

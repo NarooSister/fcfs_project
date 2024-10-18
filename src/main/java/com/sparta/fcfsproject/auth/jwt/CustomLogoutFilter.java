@@ -53,14 +53,12 @@ public class CustomLogoutFilter extends GenericFilterBean {
         for (Cookie cookie : cookies) {
 
             if (cookie.getName().equals("refresh")) {
-
                 refresh = cookie.getValue();
             }
         }
 
         //refresh null check
         if (refresh == null) {
-
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
@@ -69,7 +67,6 @@ public class CustomLogoutFilter extends GenericFilterBean {
         try {
             jwtUtil.isExpired(refresh);
         } catch (ExpiredJwtException e) {
-
             //response status code
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
@@ -78,27 +75,28 @@ public class CustomLogoutFilter extends GenericFilterBean {
         // 토큰이 refresh인지 확인 (발급시 페이로드에 명시)
         String category = jwtUtil.getCategory(refresh);
         if (!category.equals("refresh")) {
-
             //response status code
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
         String email = jwtUtil.getEmail(refresh);
+        String sessionId = jwtUtil.getSessionId(refresh);  // sessionId 가져오기
+        String redisKey = email + ":" + sessionId;  // Redis에서 email과 sessionId를 조합한 키 사용
 
         // Redis에 저장되어 있는지 확인
-        if (Boolean.FALSE.equals(redisTemplate.hasKey(email))) {
+        if (Boolean.FALSE.equals(redisTemplate.hasKey(redisKey))) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
         }
 
         //로그아웃 진행
-        redisTemplate.delete(email);
+        redisTemplate.delete(redisKey);
 
         //Refresh 토큰 Cookie 값 0
         Cookie cookie = new Cookie("refresh", null);
         cookie.setMaxAge(0);
         cookie.setPath("/");
-
         response.addCookie(cookie);
         response.setStatus(HttpServletResponse.SC_OK);
 

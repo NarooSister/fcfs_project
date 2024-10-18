@@ -64,10 +64,12 @@ public class JwtReissueController {
         }
 
         String email = jwtUtil.getEmail(refresh);
+        String sessionId = jwtUtil.getSessionId(refresh);
         String role = jwtUtil.getRole(refresh);
+        String redisKey = email + ":" + sessionId;
 
         // Redis에 해당 refresh 토큰이 없으면, 에러 응답 반환
-        if (Boolean.FALSE.equals(redisTemplate.hasKey(email))) {
+        if (Boolean.FALSE.equals(redisTemplate.hasKey(redisKey))) {
             return new ResponseEntity<>("Refresh token not found in Redis", HttpStatus.BAD_REQUEST);
         }
 
@@ -78,13 +80,13 @@ public class JwtReissueController {
 
         //make new JWT
         String newAccess = jwtUtil.createJwt("access", email, role, 600000L);
-        String newRefresh = jwtUtil.createJwt("refresh", email, role, 86400000L);
+        String newRefresh = jwtUtil.createJwtWithSession("refresh", email, role, sessionId, 86400000L);  // 1 day
 
         // Redis에 저장된 기존 Refresh 토큰 삭제
-        redisTemplate.delete(email);
+        redisTemplate.delete(redisKey);
 
         // 새로운 Refresh 토큰 Redis에 저장
-        redisTemplate.opsForValue().set(email, newRefresh, 86400000L, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set(redisKey, newRefresh, 86400000L, TimeUnit.MILLISECONDS);
 
         //response
         response.setHeader("access", newAccess);
@@ -102,5 +104,4 @@ public class JwtReissueController {
 
         return cookie;
     }
-    //TODO 중복 로그인 가능하도록 sessionId 추가
 }
