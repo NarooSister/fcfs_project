@@ -1,4 +1,4 @@
-package com.sparta.fcfsproject.auth.config;
+package com.sparta.fcfsproject.common.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

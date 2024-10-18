@@ -19,7 +19,7 @@ public class UserInitializer {
     @Bean
     public CommandLineRunner createTemporaryUser(UserRepository userRepository) {
         return args -> {
-            String username = "user1";
+            String username = "김유저";
             String email = "kim123@gmail.com";
             String password = "1234";
             String role = "ROLE_USER";
@@ -27,7 +27,7 @@ public class UserInitializer {
             // 유저가 존재하지 않을 때만 추가
             if (userRepository.findByEmail(email) == null) {
                 String encodedPassword = bCryptPasswordEncoder.encode(password);
-                User tempUser = new User(1L, username, email, encodedPassword, role);
+                User tempUser = new User(1L, email, encodedPassword, username, "010-1234-1234", "경기도", role);
                 userRepository.save(tempUser);
                 System.out.println("Temporary user created: " + username);
             }
