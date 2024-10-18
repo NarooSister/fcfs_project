@@ -21,10 +21,8 @@ public class UserService implements UserDetailsService {
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
-
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-
         User userData = userRepository.findByEmail(email);
 
         if (userData == null) {
@@ -34,6 +32,7 @@ public class UserService implements UserDetailsService {
         // 사용자 정보가 존재할 경우 UserDetails로 변환
         return new CustomUserDetails(userData);
     }
+
     public void signup(LoginRequestDto requestDto) {
 
         String email = requestDto.getEmail();
@@ -46,24 +45,11 @@ public class UserService implements UserDetailsService {
         }
 
         User data = new User();
+        data.setName("User2");
         data.setEmail(email);
         data.setPassword(bCryptPasswordEncoder.encode(password));
-        data.setRole("ROLE_ADMIN");
+        data.setRole("ROLE_USER");
         userRepository.save(data);
     }
-    public void login(LoginRequestDto requestDto) {
-        String email = requestDto.getEmail();
-        String password = requestDto.getPassword();
-
-        User user = userRepository.findByEmail(email);
-
-        if (user == null || !bCryptPasswordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalArgumentException("Invalid email or password.");
-        }
-
-        // 로그인 성공 시 사용자 정보를 반환 (CustomUserDetails를 사용한 예시)
-        new CustomUserDetails(user);
-    }
-
 }
 

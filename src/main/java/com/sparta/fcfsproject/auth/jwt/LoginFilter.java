@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,27 +15,27 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 public class LoginFilter extends UsernamePasswordAuthenticationFilter {
 
     private final AuthenticationManager authenticationManager;
     private final JWTUtil jwtUtil;
+    private final RedisTemplate<String, Object> redisTemplate;
 
-    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil) {
-
+    public LoginFilter(AuthenticationManager authenticationManager, JWTUtil jwtUtil, RedisTemplate<String, Object> redisTemplate) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
 
-        String username = obtainUsername(request);
+        String email = request.getParameter("email");
         String password = obtainPassword(request);
 
-        System.out.println(username);
-
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password, null);
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(email, password, null);
 
         return authenticationManager.authenticate(authToken);
     }
@@ -43,7 +44,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) {
 
         //유저 정보
-        String username = authentication.getName();
+        String email = authentication.getName();
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Iterator<? extends GrantedAuthority> iterator = authorities.iterator();
@@ -51,8 +52,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         String role = auth.getAuthority();
 
         //토큰 생성
-        String access = jwtUtil.createJwt("access", username, role, 600000L);
-        String refresh = jwtUtil.createJwt("refresh", username, role, 86400000L);
+        String access = jwtUtil.createJwt("access", email, role, 600000L);
+        String refresh = jwtUtil.createJwt("refresh", email, role, 86400000L);
+
+        //Refresh 토큰 저장
+        addRefreshToken(email, refresh, 86400000L);
 
         //응답 설정
         response.setHeader("access", access);   // 응답 해더에 넣음
@@ -74,6 +78,10 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         cookie.setHttpOnly(true);   //js에서 접근 못하도록 막음
 
         return cookie;
+    }
+    public void addRefreshToken(String email, String refresh, Long expiredMs) {
+        // Redis에 토큰 저장, email을 키로 사용
+        redisTemplate.opsForValue().set(email, refresh, expiredMs, TimeUnit.MILLISECONDS);
     }
 }
 

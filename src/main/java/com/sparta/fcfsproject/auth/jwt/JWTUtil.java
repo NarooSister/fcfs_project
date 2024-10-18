@@ -40,7 +40,7 @@ public class JWTUtil {
         return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
-                .parseClaimsJwt(token)
+                .parseClaimsJws(token)
                 .getBody()
                 .get("category", String.class);
     }
@@ -54,11 +54,10 @@ public class JWTUtil {
                 .before(new Date());
     }
 
-
     public String createJwt(String category, String email, String role, Long expiredMs) {
 
         return Jwts.builder()
-                .claim("categoty", category)
+                .claim("category", category)
                 .claim("email", email)
                 .claim("role", role)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
