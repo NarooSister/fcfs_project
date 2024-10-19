@@ -69,8 +69,8 @@ public class WebSecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login","signup", "/", "/join", "/reissue").permitAll()
-                        .requestMatchers("/admin").hasRole("ADMIN")
+                        .requestMatchers("/login","signup", "/", "/join", "/reissue", "/verify-email", "/verify-email/confirm").permitAll()
+                                .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class)
                 .addFilterAt(new LoginFilter(authenticationManager, jwtUtil, redisTemplate), UsernamePasswordAuthenticationFilter.class)
