@@ -56,6 +56,7 @@ public class UserController {
         }
     }
 
+    // 유저 정보 업데이트
     @PatchMapping("/update-profile")
     public ResponseEntity<String> updateProfile(@RequestBody UpdateProfileRequest request) {
         User user = AuthFacade.getCurrentUser();
@@ -68,6 +69,21 @@ public class UserController {
             return new ResponseEntity<>("프로필이 성공적으로 업데이트되었습니다.", HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>("프로필 업데이트 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // 유저 비밀번호 수정
+    @PatchMapping("/update-password")
+    public ResponseEntity<String> updatePassword(@RequestBody UpdatePasswordRequest request){
+        User user = AuthFacade.getCurrentUser();
+        if (user == null) {
+            return new ResponseEntity<>("인증된 사용자가 없습니다.", HttpStatus.UNAUTHORIZED);
+        }
+        try {
+            userService.updatePassword(user, request);
+            return new ResponseEntity<>("비밀번호가 성공적으로 수정되었습니다.", HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>("비밀번호 변경 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

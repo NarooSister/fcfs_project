@@ -70,7 +70,7 @@ public class WebSecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login","signup", "/", "/join", "/reissue", "/verify-email", "/verify-email/confirm").permitAll()
-                        .requestMatchers("/update-profile").authenticated()
+                        .requestMatchers("/update-profile","/update-password").authenticated()
                                 .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class)
