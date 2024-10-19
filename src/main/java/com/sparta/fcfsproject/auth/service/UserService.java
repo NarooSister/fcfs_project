@@ -4,6 +4,7 @@ import com.sparta.fcfsproject.auth.dto.CustomUserDetails;
 import com.sparta.fcfsproject.auth.dto.SignupRequest;
 import com.sparta.fcfsproject.auth.entity.User;
 import com.sparta.fcfsproject.auth.repository.UserRepository;
+import com.sparta.fcfsproject.common.config.AESUtil;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -39,7 +40,13 @@ public class UserService implements UserDetailsService {
         return new CustomUserDetails(userData);
     }
 
-    public void signup(SignupRequest request) {
+    public void signup(SignupRequest request) throws Exception {
+        // 회원정보를 암호화
+        String encryptedEmail = AESUtil.encrypt(request.getEmail());
+        String encryptedName = AESUtil.encrypt(request.getName());
+        String encryptedPhoneNumber = AESUtil.encrypt(request.getPhoneNumber());
+        String encryptedAddress = AESUtil.encrypt(request.getAddress());
+
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디 입니다.");
         }
@@ -47,8 +54,8 @@ public class UserService implements UserDetailsService {
         String encodedPassword = bCryptPasswordEncoder.encode(request.getPassword());
 
         // 사용자 엔티티 생성 및 저장
-        User user = new User(request.getUsername(), request.getEmail(), encodedPassword, request.getName(),
-                request.getPhoneNumber(), request.getAddress(), "ROLE_USER");
+        User user = new User(request.getUsername(), encryptedEmail, encodedPassword, encryptedName,
+                encryptedPhoneNumber, encryptedAddress, "ROLE_USER");
         userRepository.save(user);
     }
 

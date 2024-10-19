@@ -21,7 +21,7 @@ public class UserController {
     // 로그아웃 로직은 CustomLogoutFilter에서 처리함 (/logout)으로 접근 가능
 
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestBody @Validated SignupRequest signupRequest) {
+    public ResponseEntity<String> signup(@RequestBody @Validated SignupRequest signupRequest) throws Exception {
         userService.signup(signupRequest);
         return new ResponseEntity<>("회원가입이 완료되었습니다.", HttpStatus.CREATED);
     }
