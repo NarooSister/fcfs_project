@@ -2,6 +2,7 @@ package com.sparta.fcfsproject.auth.service;
 
 import com.sparta.fcfsproject.auth.dto.CustomUserDetails;
 import com.sparta.fcfsproject.auth.dto.SignupRequest;
+import com.sparta.fcfsproject.auth.dto.UpdateProfileRequest;
 import com.sparta.fcfsproject.auth.entity.User;
 import com.sparta.fcfsproject.auth.repository.UserRepository;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -11,6 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -30,12 +32,8 @@ public class UserService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User userData = userRepository.findByUsername(username);
-
-        if (userData == null) {
-            // 이메일로 사용자를 찾지 못했을 경우 예외 발생
-            throw new UsernameNotFoundException("User not found with username: " + username);
-        }
+        User userData = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
         // 사용자 정보가 존재할 경우 UserDetails로 변환
         return new CustomUserDetails(userData);
     }
@@ -61,6 +59,7 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
     }
 
+
     // 모든 세션에서 로그아웃하는 메서드
     public void logoutAllSessions(String username) {
         // Redis에서 해당 이메일로 저장된 모든 키를 조회
@@ -81,5 +80,12 @@ public class UserService implements UserDetailsService {
         }
     }
 
+    public void updateProfile(User user, UpdateProfileRequest request) {
+        String encryptedPhoneNumber = encryptionService.encrypt(request.getPhoneNumber());
+        String encryptedAddress = encryptionService.encrypt(request.getAddress());
+        user.updateProfile(encryptedPhoneNumber, encryptedAddress);
+        // 사용자 정보 저장
+        userRepository.save(user);
+    }
 }
 

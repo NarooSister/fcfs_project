@@ -53,7 +53,6 @@ public class EmailService {
             int index = random.nextInt(characters.length());
             verificationCode.append(characters.charAt(index));
         }
-
         return verificationCode.toString();
     }
 

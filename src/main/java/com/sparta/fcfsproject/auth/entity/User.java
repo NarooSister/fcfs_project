@@ -47,4 +47,14 @@ public class User extends BaseEntity {
         this.address = address;
         this.role = role;
     }
+    public void updateProfile(String phoneNumber, String address) {
+        // phoneNumber가 null이 아닌 경우에만 업데이트
+        if (phoneNumber != null) {
+            this.phoneNumber = phoneNumber;
+        }
+        // address가 null이 아닌 경우에만 업데이트
+        if (address != null) {
+            this.address = address;
+        }
+    }
 }

@@ -26,7 +26,7 @@ public class UserInitializer {
             String role = "ROLE_USER";
 
             // 유저가 존재하지 않을 때만 추가
-            if (userRepository.findByUsername(username) == null) {
+            if (userRepository.findByUsername(username).isEmpty()) {
                 String encodedPassword = bCryptPasswordEncoder.encode(password);
                 User tempUser = new User(1L, username, email, encodedPassword, name, "010-1234-1234", "test", role);
                 userRepository.save(tempUser);
