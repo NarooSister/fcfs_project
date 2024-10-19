@@ -4,7 +4,6 @@ import com.sparta.fcfsproject.auth.dto.CustomUserDetails;
 import com.sparta.fcfsproject.auth.dto.SignupRequest;
 import com.sparta.fcfsproject.auth.entity.User;
 import com.sparta.fcfsproject.auth.repository.UserRepository;
-import com.sparta.fcfsproject.common.config.AESUtil;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -21,11 +20,12 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final RedisTemplate<String, Object> redisTemplate;
-
-    public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, RedisTemplate<String, Object> redisTemplate) {
+    private final EncryptionService encryptionService;
+    public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, RedisTemplate<String, Object> redisTemplate, EncryptionService encryptionService) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.redisTemplate = redisTemplate;
+        this.encryptionService = encryptionService;
     }
 
     @Override
@@ -42,14 +42,16 @@ public class UserService implements UserDetailsService {
 
     public void signup(SignupRequest request) throws Exception {
         // 회원정보를 암호화
-        String encryptedEmail = AESUtil.encrypt(request.getEmail());
-        String encryptedName = AESUtil.encrypt(request.getName());
-        String encryptedPhoneNumber = AESUtil.encrypt(request.getPhoneNumber());
-        String encryptedAddress = AESUtil.encrypt(request.getAddress());
+        // 이메일, 이름, 전화번호, 주소 암호화
+        String encryptedEmail = encryptionService.encrypt(request.getEmail());
+        String encryptedName = encryptionService.encrypt(request.getName());
+        String encryptedPhoneNumber = encryptionService.encrypt(request.getPhoneNumber());
+        String encryptedAddress = encryptionService.encrypt(request.getAddress());
 
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디 입니다.");
         }
+
         // 비밀번호 암호화
         String encodedPassword = bCryptPasswordEncoder.encode(request.getPassword());
 

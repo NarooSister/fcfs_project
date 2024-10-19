@@ -5,6 +5,7 @@ import com.sparta.fcfsproject.auth.jwt.CustomLogoutFilter;
 import com.sparta.fcfsproject.auth.jwt.JWTFilter;
 import com.sparta.fcfsproject.auth.jwt.JWTUtil;
 import com.sparta.fcfsproject.auth.jwt.LoginFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -15,6 +16,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.encrypt.AesBytesEncryptor;
+import org.springframework.security.crypto.encrypt.BytesEncryptor;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
@@ -26,6 +29,12 @@ public class WebSecurityConfig {
     private final AuthenticationConfiguration authenticationConfiguration;
     private final JWTUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
+
+    @Value("${security.encryptor.symmetricKey}")
+    private String symmetricKey;
+
+    @Value("${security.encryptor.salt}")
+    private String salt;
 
     public WebSecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil, RedisTemplate<String, Object> redisTemplate) {
 
@@ -43,6 +52,12 @@ public class WebSecurityConfig {
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    // AesBytesEncryptor를 사용한 암호화 Bean 등록
+    @Bean
+    public BytesEncryptor aesBytesEncryptor() {
+        return new AesBytesEncryptor(symmetricKey, salt);
     }
 
     @Bean
