@@ -1,6 +1,5 @@
 package com.sparta.fcfsproject.auth.controller;
 
-import com.sparta.fcfsproject.auth.dto.LoginRequestDto;
 import com.sparta.fcfsproject.auth.dto.SignupRequest;
 import com.sparta.fcfsproject.auth.service.UserService;
 import lombok.RequiredArgsConstructor;

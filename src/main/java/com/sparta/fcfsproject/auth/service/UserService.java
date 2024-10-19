@@ -1,7 +1,6 @@
 package com.sparta.fcfsproject.auth.service;
 
 import com.sparta.fcfsproject.auth.dto.CustomUserDetails;
-import com.sparta.fcfsproject.auth.dto.LoginRequestDto;
 import com.sparta.fcfsproject.auth.dto.SignupRequest;
 import com.sparta.fcfsproject.auth.entity.User;
 import com.sparta.fcfsproject.auth.repository.UserRepository;
