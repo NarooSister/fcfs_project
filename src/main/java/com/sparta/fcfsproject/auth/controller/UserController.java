@@ -1,8 +1,12 @@
 package com.sparta.fcfsproject.auth.controller;
 
 import com.sparta.fcfsproject.auth.dto.LoginRequestDto;
+import com.sparta.fcfsproject.auth.dto.SignupRequest;
 import com.sparta.fcfsproject.auth.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,9 +22,9 @@ public class UserController {
     // 로그아웃 로직은 CustomLogoutFilter에서 처리함 (/logout)으로 접근 가능
 
     @PostMapping("/signup")
-    public String signup(@RequestBody LoginRequestDto requestDto) {
-        userService.signup(requestDto);
-        return "ok";
+    public ResponseEntity<String> signup(@RequestBody @Validated SignupRequest signupRequest) {
+        userService.signup(signupRequest);
+        return new ResponseEntity<>("회원가입이 완료되었습니다.", HttpStatus.CREATED);
     }
 
     @GetMapping("/admin")

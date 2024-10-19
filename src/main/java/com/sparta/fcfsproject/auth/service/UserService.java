@@ -2,6 +2,7 @@ package com.sparta.fcfsproject.auth.service;
 
 import com.sparta.fcfsproject.auth.dto.CustomUserDetails;
 import com.sparta.fcfsproject.auth.dto.LoginRequestDto;
+import com.sparta.fcfsproject.auth.dto.SignupRequest;
 import com.sparta.fcfsproject.auth.entity.User;
 import com.sparta.fcfsproject.auth.repository.UserRepository;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -39,20 +40,17 @@ public class UserService implements UserDetailsService {
         return new CustomUserDetails(userData);
     }
 
-    public void signup(LoginRequestDto requestDto) {
-
-        String email = requestDto.getEmail();
-        String password = requestDto.getPassword();
-
-        Boolean isExist = userRepository.existsByEmail(email);
-
-        if (isExist) {
-            throw new IllegalArgumentException("Email already exists.");
+    public void signup(SignupRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
+        // 비밀번호 암호화
+        String encodedPassword = bCryptPasswordEncoder.encode(request.getPassword());
 
-        User data = new User();
-
-        userRepository.save(data);
+        // 사용자 엔티티 생성 및 저장
+        User user = new User(request.getEmail(), encodedPassword, request.getName(),
+                request.getPhoneNumber(), request.getAddress(), "ROLE_USER");
+        userRepository.save(user);
     }
 
     // 모든 세션에서 로그아웃하는 메서드
