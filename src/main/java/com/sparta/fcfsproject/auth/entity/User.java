@@ -12,12 +12,14 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "User", indexes = {
-        @Index(name = "idx_email", columnList = "email", unique = true)
+        @Index(name = "idx_username", columnList = "username", unique = true)
 })
 public class User extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    private String username;
 
     private String email;
 
@@ -31,12 +33,13 @@ public class User extends BaseEntity {
 
     private String role;
 
-    public User(String email, String role) {
-        this.email = email;
+    public User(String username, String role) {
+        this.username = username;
         this.role = role;
     }
 
-    public User(String email, String password, String name, String phoneNumber, String address, String role) {
+    public User(String username, String email, String password, String name, String phoneNumber, String address, String role) {
+        this.username = username;
         this.email = email;
         this.password = password;
         this.name = name;

@@ -32,10 +32,10 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
 
-        String email = request.getParameter("email");
+        String username = obtainUsername(request);
         String password = obtainPassword(request);
 
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(email, password, null);
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(username, password, null);
 
         return authenticationManager.authenticate(authToken);
     }
@@ -44,7 +44,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authentication) {
 
         //유저 정보
-        String email = authentication.getName();
+        String username = authentication.getName();
         String sessionId = request.getSession().getId();  // 세션 ID 가져오기
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
@@ -53,11 +53,11 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         String role = auth.getAuthority();
 
         //토큰 생성
-        String access = jwtUtil.createJwt("access", email, role, 600000L);  // 10분
-        String refresh = jwtUtil.createJwtWithSession("refresh", email, role, sessionId, 86400000L);  // 1일 만료, sessionId 포함
+        String access = jwtUtil.createJwt("access", username, role, 600000L);  // 10분
+        String refresh = jwtUtil.createJwtWithSession("refresh", username, role, sessionId, 86400000L);  // 1일 만료, sessionId 포함
 
         //Redis에 Refresh 토큰 저장 (sessionId를 포함)
-        redisTemplate.opsForValue().set(email + ":" + sessionId, refresh, 86400000L, TimeUnit.MILLISECONDS);
+        redisTemplate.opsForValue().set(username + ":" + sessionId, refresh, 86400000L, TimeUnit.MILLISECONDS);
 
         //응답 설정
         response.setHeader("access", access);   // 응답 해더에 넣음

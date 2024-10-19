@@ -63,10 +63,10 @@ public class JwtReissueController {
             return new ResponseEntity<>("invalid refresh token", HttpStatus.BAD_REQUEST);
         }
 
-        String email = jwtUtil.getEmail(refresh);
+        String username = jwtUtil.getUsername(refresh);
         String sessionId = jwtUtil.getSessionId(refresh);
         String role = jwtUtil.getRole(refresh);
-        String redisKey = email + ":" + sessionId;
+        String redisKey = username + ":" + sessionId;
 
         // Redis에 해당 refresh 토큰이 없으면, 에러 응답 반환
         if (Boolean.FALSE.equals(redisTemplate.hasKey(redisKey))) {
@@ -79,8 +79,8 @@ public class JwtReissueController {
         }
 
         //make new JWT
-        String newAccess = jwtUtil.createJwt("access", email, role, 600000L);
-        String newRefresh = jwtUtil.createJwtWithSession("refresh", email, role, sessionId, 86400000L);  // 1 day
+        String newAccess = jwtUtil.createJwt("access", username, role, 600000L);
+        String newRefresh = jwtUtil.createJwtWithSession("refresh", username, role, sessionId, 86400000L);  // 1 day
 
         // Redis에 저장된 기존 Refresh 토큰 삭제
         redisTemplate.delete(redisKey);

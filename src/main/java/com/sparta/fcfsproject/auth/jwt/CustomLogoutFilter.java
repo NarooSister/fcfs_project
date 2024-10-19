@@ -79,9 +79,9 @@ public class CustomLogoutFilter extends GenericFilterBean {
             return;
         }
 
-        String email = jwtUtil.getEmail(refresh);
+        String username = jwtUtil.getUsername(refresh);
         String sessionId = jwtUtil.getSessionId(refresh);  // sessionId 가져오기
-        String redisKey = email + ":" + sessionId;  // Redis에서 email과 sessionId를 조합한 키 사용
+        String redisKey = username + ":" + sessionId;  // Redis에서 email과 sessionId를 조합한 키 사용
 
         // Redis에 저장되어 있는지 확인
         if (Boolean.FALSE.equals(redisTemplate.hasKey(redisKey))) {

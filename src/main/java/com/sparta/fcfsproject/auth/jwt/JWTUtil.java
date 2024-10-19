@@ -19,13 +19,13 @@ public class JWTUtil {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String getEmail(String token) {
+    public String getUsername(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
-                .get("email", String.class);
+                .get("username", String.class);
     }
 
     public String getRole(String token) {
@@ -74,10 +74,11 @@ public class JWTUtil {
                 .getBody()
                 .get("sessionId", String.class);  // sessionId를 claim에서 추출
     }
-    public String createJwtWithSession(String category, String email, String role, String sessionId, Long expiredMs) {
+
+    public String createJwtWithSession(String category, String username, String role, String sessionId, Long expiredMs) {
         return Jwts.builder()
                 .claim("category", category)
-                .claim("email", email)
+                .claim("username", username)
                 .claim("role", role)
                 .claim("sessionId", sessionId)  // sessionId를 포함하여 JWT 생성
                 .setIssuedAt(new Date(System.currentTimeMillis()))
@@ -85,11 +86,12 @@ public class JWTUtil {
                 .signWith(secretKey)
                 .compact();
     }
-    public String createJwt(String category, String email, String role, Long expiredMs) {
+
+    public String createJwt(String category, String username, String role, Long expiredMs) {
 
         return Jwts.builder()
                 .claim("category", category)
-                .claim("email", email)
+                .claim("username", username)
                 .claim("role", role)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
