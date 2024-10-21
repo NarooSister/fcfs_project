@@ -68,7 +68,7 @@ public class WebSecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "signup", "/", "/join", "/reissue", "/verify-email", "/verify-email/confirm").permitAll()
+                        .requestMatchers("/login", "/signup", "/", "/join", "/reissue", "/verify-email", "/verify-email/confirm", "/tickets").permitAll()
                         .requestMatchers("/update-profile", "/update-password").authenticated()
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated())
