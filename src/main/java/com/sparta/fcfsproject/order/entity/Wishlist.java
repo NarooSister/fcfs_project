@@ -1,4 +1,4 @@
-package com.sparta.fcfsproject.auth.entity;
+package com.sparta.fcfsproject.order.entity;
 
 import com.sparta.fcfsproject.common.entity.BaseEntity;
 import jakarta.persistence.*;
