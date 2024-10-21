@@ -27,8 +27,14 @@ public class JWTFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        // 헤더에서 access키에 담긴 토큰을 꺼냄
-        String accessToken = request.getHeader("access");
+        // 헤더에서 토큰을 꺼냄
+        String bearerToken = request.getHeader("Authorization");
+
+        // 토큰 추출
+        String accessToken = null;
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            accessToken = bearerToken.substring(7); // "Bearer " 이후의 토큰 문자열만 추출
+        }
 
         // 토큰이 없다면 다음 필터로 넘김
         if (accessToken == null) {
@@ -38,29 +44,18 @@ public class JWTFilter extends OncePerRequestFilter {
 
         // 토큰 만료 여부 확인, 만료시 다음 필터로 넘기지 않음
         try {
-            jwtUtil.isExpired(accessToken);
+            if (!jwtUtil.validateToken(accessToken)) {
+                // 유효하지 않은 토큰일 경우
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                PrintWriter writer = response.getWriter();
+                writer.print("Invalid JWT token");
+                return;
+            }
         } catch (ExpiredJwtException e) {
-
-            //response body
-            PrintWriter writer = response.getWriter();
-            writer.print("access token expired");
-
-            //response status code
+            // 만료된 토큰의 경우 처리
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-
-        // 토큰이 access인지 확인 (발급시 페이로드에 명시)
-        String category = jwtUtil.getCategory(accessToken);
-
-        if (!category.equals("access")) {
-
-            //response body
             PrintWriter writer = response.getWriter();
-            writer.print("invalid access token");
-
-            //response status code
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            writer.print("Access token expired");
             return;
         }
 

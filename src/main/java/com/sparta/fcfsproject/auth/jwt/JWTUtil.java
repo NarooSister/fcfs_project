@@ -1,7 +1,10 @@
 package com.sparta.fcfsproject.auth.jwt;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -36,23 +39,6 @@ public class JWTUtil {
                 .getBody()
                 .get("role", String.class);
     }
-    public String getCategory(String token){
-        return Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("category", String.class);
-    }
-    public Boolean isExpired(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getExpiration()
-                .before(new Date());
-    }
 
     public Long getExpiration(String token) {
         Date expiration = Jwts.parserBuilder()
@@ -75,9 +61,8 @@ public class JWTUtil {
                 .get("sessionId", String.class);  // sessionId를 claim에서 추출
     }
 
-    public String createJwtWithSession(String category, String username, String role, String sessionId, Long expiredMs) {
+    public String createJwtWithSession(String username, String role, String sessionId, Long expiredMs) {
         return Jwts.builder()
-                .claim("category", category)
                 .claim("username", username)
                 .claim("role", role)
                 .claim("sessionId", sessionId)  // sessionId를 포함하여 JWT 생성
@@ -87,15 +72,32 @@ public class JWTUtil {
                 .compact();
     }
 
-    public String createJwt(String category, String username, String role, Long expiredMs) {
+    public String createJwt(String username, String role, Long expiredMs) {
 
         return Jwts.builder()
-                .claim("category", category)
                 .claim("username", username)
                 .claim("role", role)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiredMs))
                 .signWith(secretKey)
                 .compact();
+    }
+    public Boolean validateToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token);  // 토큰의 유효성 및 서명 검증
+            return true;  // 토큰이 유효하면 true 반환
+        } catch (SignatureException e) {
+            // 서명이 잘못된 경우
+            throw new JwtException("Invalid JWT signature");
+        } catch (ExpiredJwtException e) {
+            // 토큰이 만료된 경우
+            throw new ExpiredJwtException(e.getHeader(), e.getClaims(), "JWT token is expired");
+        } catch (Exception e) {
+            // 기타 예외 처리
+            throw new JwtException("Invalid JWT token");
+        }
     }
 }

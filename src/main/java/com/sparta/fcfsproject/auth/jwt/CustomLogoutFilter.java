@@ -32,16 +32,8 @@ public class CustomLogoutFilter extends GenericFilterBean {
 
     private void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
 
-        //path and method verify
-        String requestUri = request.getRequestURI();
-        if (!requestUri.matches("^\\/logout$")) {
-
-            filterChain.doFilter(request, response);
-            return;
-        }
-        String requestMethod = request.getMethod();
-        if (!requestMethod.equals("POST")) {
-
+        // Path and method verification
+        if (!"/logout".equals(request.getRequestURI()) || !"POST".equals(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -49,32 +41,17 @@ public class CustomLogoutFilter extends GenericFilterBean {
         //get refresh token
         String refresh = null;
         Cookie[] cookies = request.getCookies();
-        for (Cookie cookie : cookies) {
-
-            if (cookie.getName().equals("refresh")) {
-                refresh = cookie.getValue();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("refresh".equals(cookie.getName())) {
+                    refresh = cookie.getValue();
+                    break;
+                }
             }
         }
 
-        //refresh null check
+        // null 체크
         if (refresh == null) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        //expired check
-        try {
-            jwtUtil.isExpired(refresh);
-        } catch (ExpiredJwtException e) {
-            //response status code
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        // 토큰이 refresh인지 확인 (발급시 페이로드에 명시)
-        String category = jwtUtil.getCategory(refresh);
-        if (!category.equals("refresh")) {
-            //response status code
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
@@ -97,7 +74,6 @@ public class CustomLogoutFilter extends GenericFilterBean {
         cookie.setMaxAge(0);
         cookie.setPath("/");
         response.addCookie(cookie);
-        response.setStatus(HttpServletResponse.SC_OK);
 
         // JWT의 만료 시간을 가져와서 현재 시간과의 차이를 TTL로 설정
         Long expirationTime = jwtUtil.getExpiration(refresh);
@@ -107,5 +83,7 @@ public class CustomLogoutFilter extends GenericFilterBean {
         if (ttl > 0) {
             redisTemplate.opsForValue().set(refresh, "true", ttl, TimeUnit.MILLISECONDS);
         }
+
+        response.setStatus(HttpServletResponse.SC_OK);
     }
 }
