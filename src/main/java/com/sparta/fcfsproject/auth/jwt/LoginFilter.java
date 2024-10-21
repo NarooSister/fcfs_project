@@ -13,6 +13,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
@@ -66,9 +67,16 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     }
 
     @Override
-    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
+    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) throws IOException {
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());  // 401 상태 코드
+        response.setContentType("application/json;charset=UTF-8");
 
-        response.setStatus(401);
+        // 에러 응답을 JSON 형식으로 설정 (errorCode, errorMessage)
+        String errorResponse = "{\"errorCode\": \"AUTH-001\", \"errorMessage\": \"정확하지 않은 아이디 또는 비밀번호 입니다.\"}";
+
+        // 에러 메시지를 클라이언트에 전달
+        response.getWriter().write(errorResponse);
+        response.getWriter().flush();  // 버퍼를 비워 즉시 전송
     }
     private Cookie createCookie(String key, String value) {
 

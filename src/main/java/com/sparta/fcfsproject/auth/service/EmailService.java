@@ -1,6 +1,8 @@
 package com.sparta.fcfsproject.auth.service;
 
 import com.sparta.fcfsproject.auth.repository.UserRepository;
+import com.sparta.fcfsproject.common.exception.UserBusinessException;
+import com.sparta.fcfsproject.common.exception.UserServiceErrorCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -62,13 +64,16 @@ public class EmailService {
         String encryptedEmail = encryptionService.encrypt(email);
         // 이메일이 이미 등록되어 있는지 확인
         if (userRepository.existsByEmail(encryptedEmail)) {
-            throw new IllegalArgumentException("이미 등록된 이메일입니다.");
+            throw new UserBusinessException(UserServiceErrorCode.EMAIL_ALREADY_REGISTERED);
         }
     }
 
     // 인증 번호 확인
     public boolean verifyCode(String email, String inputCode) {
         String storedCode = redisTemplate.opsForValue().get(email);
-        return inputCode.equals(storedCode);
+        if (!inputCode.equals(storedCode)) {
+            throw new UserBusinessException(UserServiceErrorCode.INVALID_VERIFICATION_CODE);
+        }
+        return true;
     }
 }

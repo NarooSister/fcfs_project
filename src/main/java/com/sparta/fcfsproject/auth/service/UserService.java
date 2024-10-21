@@ -6,6 +6,8 @@ import com.sparta.fcfsproject.auth.dto.UpdatePasswordRequest;
 import com.sparta.fcfsproject.auth.dto.UpdateProfileRequest;
 import com.sparta.fcfsproject.auth.entity.User;
 import com.sparta.fcfsproject.auth.repository.UserRepository;
+import com.sparta.fcfsproject.common.exception.UserBusinessException;
+import com.sparta.fcfsproject.common.exception.UserServiceErrorCode;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -13,7 +15,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -24,6 +25,7 @@ public class UserService implements UserDetailsService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final RedisTemplate<String, Object> redisTemplate;
     private final EncryptionService encryptionService;
+
     public UserService(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder, RedisTemplate<String, Object> redisTemplate, EncryptionService encryptionService) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
@@ -39,7 +41,7 @@ public class UserService implements UserDetailsService {
         return new CustomUserDetails(userData);
     }
 
-    public void signup(SignupRequest request) throws Exception {
+    public void signup(SignupRequest request) {
         // 회원정보를 암호화
         // 이메일, 이름, 전화번호, 주소 암호화
         String encryptedEmail = encryptionService.encrypt(request.getEmail());
@@ -48,7 +50,7 @@ public class UserService implements UserDetailsService {
         String encryptedAddress = encryptionService.encrypt(request.getAddress());
 
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("이미 사용 중인 아이디 입니다.");
+            throw new UserBusinessException(UserServiceErrorCode.DUPLICATE_USER);
         }
 
         // 비밀번호 암호화
@@ -71,12 +73,12 @@ public class UserService implements UserDetailsService {
     public void updatePassword(User user, UpdatePasswordRequest request) {
         // 새 비밀번호와 확인 비밀번호가 일치하는지 확인
         if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
-            throw new IllegalArgumentException("새 비밀번호가 일치하지 않습니다.");
+            throw new UserBusinessException(UserServiceErrorCode.PASSWORD_MISMATCH);
         }
 
         // 기존 비밀번호가 일치하는지 확인
         if (!bCryptPasswordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+            throw new UserBusinessException(UserServiceErrorCode.PASSWORD_INCORRECT);
         }
 
         // 새 비밀번호로 변경

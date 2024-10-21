@@ -1,10 +1,7 @@
 package com.sparta.fcfsproject.auth.config;
 
 
-import com.sparta.fcfsproject.auth.jwt.CustomLogoutFilter;
-import com.sparta.fcfsproject.auth.jwt.JWTFilter;
-import com.sparta.fcfsproject.auth.jwt.JWTUtil;
-import com.sparta.fcfsproject.auth.jwt.LoginFilter;
+import com.sparta.fcfsproject.auth.jwt.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +26,7 @@ public class WebSecurityConfig {
     private final AuthenticationConfiguration authenticationConfiguration;
     private final JWTUtil jwtUtil;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     @Value("${security.encryptor.symmetricKey}")
     private String symmetricKey;
@@ -36,11 +34,12 @@ public class WebSecurityConfig {
     @Value("${security.encryptor.salt}")
     private String salt;
 
-    public WebSecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil, RedisTemplate<String, Object> redisTemplate) {
+    public WebSecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil, RedisTemplate<String, Object> redisTemplate, CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
 
         this.authenticationConfiguration = authenticationConfiguration;
         this.jwtUtil = jwtUtil;
         this.redisTemplate = redisTemplate;
+        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
     }
 
     @Bean
@@ -69,15 +68,17 @@ public class WebSecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login","signup", "/", "/join", "/reissue", "/verify-email", "/verify-email/confirm").permitAll()
-                        .requestMatchers("/update-profile","/update-password").authenticated()
-                                .requestMatchers("/admin").hasRole("ADMIN")
+                        .requestMatchers("/login", "signup", "/", "/join", "/reissue", "/verify-email", "/verify-email/confirm").permitAll()
+                        .requestMatchers("/update-profile", "/update-password").authenticated()
+                        .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class)
                 .addFilterAt(new LoginFilter(authenticationManager, jwtUtil, redisTemplate), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new CustomLogoutFilter(jwtUtil, redisTemplate), LogoutFilter.class)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)  // 인증 오류 시 CustomAuthenticationEntryPoint 실행
+                );
         return http.build();
     }
 }
