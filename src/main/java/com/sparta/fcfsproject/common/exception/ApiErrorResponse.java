@@ -1,19 +1,7 @@
 package com.sparta.fcfsproject.common.exception;
 
-public class ApiErrorResponse {
-    private final String errorCode;
-    private final String errorMessage;
+import lombok.Getter;
 
-    public ApiErrorResponse(String errorCode, String errorMessage) {
-        this.errorCode = errorCode;
-        this.errorMessage = errorMessage;
-    }
-
-    public String getErrorCode() {
-        return errorCode;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
+@Getter
+public record ApiErrorResponse(String errorCode, String errorMessage) {
 }
