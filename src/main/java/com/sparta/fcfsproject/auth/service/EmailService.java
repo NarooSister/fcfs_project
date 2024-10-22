@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -28,6 +29,7 @@ public class EmailService {
     }
 
     // 인증 번호 이메일로 전송
+    @Async
     public void sendVerificationEmail(String email) {
         // 이메일 존재 여부 확인
         existsByEmail(email);

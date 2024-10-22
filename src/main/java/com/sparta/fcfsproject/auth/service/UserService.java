@@ -8,6 +8,7 @@ import com.sparta.fcfsproject.auth.entity.User;
 import com.sparta.fcfsproject.auth.repository.UserRepository;
 import com.sparta.fcfsproject.common.exception.UserBusinessException;
 import com.sparta.fcfsproject.common.exception.UserServiceErrorCode;
+import jakarta.transaction.Transactional;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -40,7 +41,7 @@ public class UserService implements UserDetailsService {
         // 사용자 정보가 존재할 경우 UserDetails로 변환
         return new CustomUserDetails(userData);
     }
-
+    @Transactional
     public void signup(SignupRequest request) {
         // 회원정보를 암호화
         // 이메일, 이름, 전화번호, 주소 암호화
@@ -62,6 +63,7 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
     }
 
+    @Transactional
     public void updateProfile(User user, UpdateProfileRequest request) {
         String encryptedPhoneNumber = encryptionService.encrypt(request.getPhoneNumber());
         String encryptedAddress = encryptionService.encrypt(request.getAddress());
@@ -70,6 +72,7 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
     }
 
+    @Transactional
     public void updatePassword(User user, UpdatePasswordRequest request) {
         // 새 비밀번호와 확인 비밀번호가 일치하는지 확인
         if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
