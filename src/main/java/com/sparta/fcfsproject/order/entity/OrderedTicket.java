@@ -20,4 +20,12 @@ public class OrderedTicket extends BaseEntity {
     private Long orderId;
     private Integer quantity;
     private Integer price;
+    public static OrderedTicket create(Long orderId, Long ticketId, Integer quantity, Integer price) {
+        OrderedTicket orderedTicket = new OrderedTicket();
+        orderedTicket.orderId = orderId;
+        orderedTicket.ticketId = ticketId;
+        orderedTicket.quantity = quantity;
+        orderedTicket.price = price;
+        return orderedTicket;
+    }
 }

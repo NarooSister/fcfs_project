@@ -25,4 +25,12 @@ public class Orders extends BaseEntity {
         CANCELED,   // 취소 완료
         RETURNED    // 반품 완료
     }
+
+    // 정적 팩토리 메서드
+    public static Orders createPendingOrder(Long userId) {
+        Orders order = new Orders();
+        order.userId = userId;
+        order.status = Status.PENDING;
+        return order;
+    }
 }
