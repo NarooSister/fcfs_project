@@ -1,6 +1,5 @@
 package com.sparta.fcfsproject.order.dto;
 
-import com.sparta.fcfsproject.order.entity.OrderedTicket;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 

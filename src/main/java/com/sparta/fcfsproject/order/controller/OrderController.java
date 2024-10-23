@@ -25,6 +25,7 @@ public class OrderController {
         List<OrderDto> orderList = orderService.readAllOrders(user);
         return ResponseEntity.ok(orderList);
     }
+
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderDto> readOrder(@PathVariable("orderId") Long orderId){
         User user = AuthFacade.getCurrentUser();
@@ -36,6 +37,13 @@ public class OrderController {
     public ResponseEntity<String> createOrder(@RequestBody OrderRequestDto orderRequestDto){
         User user = AuthFacade.getCurrentUser();
         orderService.createOrder(user, orderRequestDto);
-        return ResponseEntity.ok("주문이 완료되었습니다.");
+        return ResponseEntity.ok("티켓 주문이 완료되었습니다.");
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<String> cancelOrder(@PathVariable("orderId") Long orderId){
+        User user = AuthFacade.getCurrentUser();
+        orderService.cancelOrder(user, orderId);
+        return ResponseEntity.ok("티켓 주문이 취소되었습니다.");
     }
 }

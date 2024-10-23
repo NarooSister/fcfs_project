@@ -16,21 +16,13 @@ public class Orders extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Long userId;
-    @Enumerated(EnumType.STRING)
-    private Status status;
-    public enum Status {
-        PENDING,   // 주문 처리 중
-        SHIPPED,   // 배송 중
-        DELIVERED, // 배송 완료
-        CANCELED,   // 취소 완료
-        RETURNED    // 반품 완료
+    private Integer totalPrice = 0;
+
+    public Orders(Long userId) {
+        this.userId = userId;
     }
 
-    // 정적 팩토리 메서드
-    public static Orders createPendingOrder(Long userId) {
-        Orders order = new Orders();
-        order.userId = userId;
-        order.status = Status.PENDING;
-        return order;
+    public void updateTotalPrice(int amount) {
+        this.totalPrice += amount;
     }
 }

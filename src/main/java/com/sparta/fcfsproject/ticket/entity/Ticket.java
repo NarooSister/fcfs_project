@@ -1,9 +1,13 @@
 package com.sparta.fcfsproject.ticket.entity;
 
 import com.sparta.fcfsproject.common.entity.BaseEntity;
+import com.sparta.fcfsproject.common.exception.TicketBusinessException;
+import com.sparta.fcfsproject.common.exception.TicketServiceErrorCode;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -21,6 +25,8 @@ public class Ticket extends BaseEntity {
 
     private String description;
 
+    private LocalDate date; // 티켓 예약 날짜
+
     @Enumerated(EnumType.STRING)
     private Status status;
 
@@ -36,5 +42,15 @@ public class Ticket extends BaseEntity {
     public enum Type{
         GENERAL,    // 일반 티켓
         SCHEDULED   // 시간대별 티켓
+    }
+
+    // 재고 차감 메서드
+    public void reduceStock(int quantity) {
+        this.stock -= quantity;
+    }
+
+    // 추가 메서드 예시 (재고 복구)
+    public void restoreStock(int quantity) {
+        this.stock += quantity;
     }
 }
