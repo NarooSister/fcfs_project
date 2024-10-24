@@ -2,8 +2,9 @@ package com.sparta.fcfsproject.order.controller;
 
 import com.sparta.fcfsproject.auth.config.AuthFacade;
 import com.sparta.fcfsproject.auth.entity.User;
-import com.sparta.fcfsproject.order.entity.CartItem;
+import com.sparta.fcfsproject.order.dto.CartItem;
 import com.sparta.fcfsproject.order.service.CartService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class CartController {
 
     // 장바구니에 아이템 추가
     @PostMapping
-    public ResponseEntity<String> addToCart(@RequestBody CartItem cartItem) {
+    public ResponseEntity<String> addToCart(@Valid @RequestBody CartItem cartItem) {
         User user = AuthFacade.getCurrentUser();
         cartService.addItemToCart(user, cartItem);
         return ResponseEntity.ok("장바구니에 아이템이 성공적으로 추가되었습니다.");
@@ -36,7 +37,7 @@ public class CartController {
 
     // 장바구니 수량 수정
     @PatchMapping("/{ticketId}")
-    public ResponseEntity<String> updateItemQuantity(@PathVariable("ticketId") Long ticketId, @RequestParam Integer newQuantity){
+    public ResponseEntity<String> updateItemQuantity(@PathVariable("ticketId") Long ticketId, @RequestParam("newQuantity") Integer newQuantity){
         User user = AuthFacade.getCurrentUser();
         cartService.updateItemQuantity(user, ticketId, newQuantity);
         return ResponseEntity.ok("상품 수량이 수정되었습니다.");
@@ -57,5 +58,4 @@ public class CartController {
         cartService.clearCart(user);
         return ResponseEntity.ok("장바구니가 성공적으로 비워졌습니다.");
     }
-
 }

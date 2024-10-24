@@ -1,6 +1,6 @@
 package com.sparta.fcfsproject.order.repository;
 
-import com.sparta.fcfsproject.order.entity.CartItem;
+import com.sparta.fcfsproject.order.dto.CartItem;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -19,7 +19,7 @@ public class CartRepository {
         this.redisTemplate = redisTemplate;
     }
 
-    // 장바구니에 상품 추가
+    // 장바구니에 상품 추가 (3일 뒤 만료)
     public void addItemToCart(Long userId, CartItem cartItem) {
         hashOperations.put(CART_PREFIX + userId, String.valueOf(cartItem.getTicketId()), cartItem);
         redisTemplate.expire(CART_PREFIX + userId, 3, TimeUnit.DAYS);
@@ -30,13 +30,9 @@ public class CartRepository {
         return hashOperations.entries(CART_PREFIX + userId);
     }
 
-    // 장바구니 상품 수량 수정
-    public void updateCartItemQuantity(Long userId, Long ticketId, Integer newQuantity) {
-        CartItem cartItem = hashOperations.get(CART_PREFIX + userId, String.valueOf(ticketId));
-        if (cartItem != null) {
-            cartItem.setQuantity(newQuantity); // 수량 수정
-            hashOperations.put(CART_PREFIX + userId, String.valueOf(ticketId), cartItem); // 수정된 장바구니 항목 저장
-        }
+    // 장바구니 특정 티켓 조회
+    public CartItem getCartItem(Long userId, Long ticketId) {
+        return hashOperations.get(CART_PREFIX + userId, String.valueOf(ticketId));
     }
 
     // 장바구니에서 특정 상품 삭제

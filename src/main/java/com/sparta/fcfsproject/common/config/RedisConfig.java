@@ -1,6 +1,6 @@
 package com.sparta.fcfsproject.common.config;
 
-import com.sparta.fcfsproject.order.entity.CartItem;
+import com.sparta.fcfsproject.order.dto.CartItem;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
