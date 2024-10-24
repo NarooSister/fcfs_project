@@ -1,6 +1,9 @@
 package com.sparta.fcfsproject.order.repository;
 
+import com.sparta.fcfsproject.common.exception.OrderBusinessException;
 import com.sparta.fcfsproject.order.dto.CartItem;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -9,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Repository
+@Slf4j
 public class CartRepository {
     private static final String CART_PREFIX = "cart:";
     private final HashOperations<String, String, CartItem> hashOperations;
@@ -42,7 +46,7 @@ public class CartRepository {
 
     // 장바구니 전체 삭제
     public void clearCart(Long userId) {
-        hashOperations.delete(CART_PREFIX + userId);
+        redisTemplate.delete(CART_PREFIX + userId);
     }
 }
 

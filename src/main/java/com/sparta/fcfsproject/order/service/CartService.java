@@ -1,7 +1,10 @@
 package com.sparta.fcfsproject.order.service;
 
 import com.sparta.fcfsproject.auth.entity.User;
+import com.sparta.fcfsproject.common.exception.OrderBusinessException;
+import com.sparta.fcfsproject.common.exception.OrderServiceErrorCode;
 import com.sparta.fcfsproject.order.dto.CartItem;
+import com.sparta.fcfsproject.order.dto.UpdateCartItemRequest;
 import com.sparta.fcfsproject.order.repository.CartRepository;
 import org.springframework.stereotype.Service;
 
@@ -31,25 +34,41 @@ public class CartService {
 
     // 장바구니 조회
     public Map<String, CartItem> getCart(User user) {
-        return cartRepository.getCart(user.getId());
+        // 장바구니가 비어있지 않은지 확인하고 반환
+        return validateCartNotEmpty(user.getId());
     }
 
     // 장바구니 상품 수량 수정
-    public void updateItemQuantity(User user, Long ticketId, Integer newQuantity) {
-        CartItem cartItem = cartRepository.getCartItem(user.getId(), ticketId);
-        if (cartItem != null) {
-            cartItem.setQuantity(newQuantity);
-            cartRepository.addItemToCart(user.getId(), cartItem); // 수량 수정 후 다시 저장
-        }
+    public void updateItemQuantity(User user, Long ticketId, UpdateCartItemRequest updateCartItemRequest) {
+        CartItem cartItem = validateCartItemExists(user.getId(), ticketId); // 해당 상품이 존재하는지 확인
+        cartItem.setQuantity(updateCartItemRequest.getNewQuantity());
+        cartRepository.addItemToCart(user.getId(), cartItem); // 수량 수정 후 다시 저장
     }
 
     // 장바구니 아이템 삭제
     public void removeItemFromCart(User user, Long ticketId) {
+        validateCartItemExists(user.getId(), ticketId); // 해당 상품이 존재하는지 확인
         cartRepository.removeItemFromCart(user.getId(), ticketId);
     }
 
     // 장바구니 전체 삭제
     public void clearCart(User user) {
+        validateCartNotEmpty(user.getId());
         cartRepository.clearCart(user.getId());
+    }
+
+    private CartItem validateCartItemExists(Long userId, Long ticketId) {
+        CartItem cartItem = cartRepository.getCartItem(userId, ticketId);
+        if (cartItem == null) {
+            throw new OrderBusinessException(OrderServiceErrorCode.CART_NOT_FOUND_TICKET);
+        }
+        return cartItem;
+    }
+    private Map<String, CartItem> validateCartNotEmpty(Long userId) {
+        Map<String, CartItem> cart = cartRepository.getCart(userId);
+        if (cart.isEmpty()) {
+            throw new OrderBusinessException(OrderServiceErrorCode.CART_NOT_FOUND);
+        }
+        return cart;
     }
 }

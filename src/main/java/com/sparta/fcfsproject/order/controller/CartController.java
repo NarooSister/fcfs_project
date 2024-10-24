@@ -3,6 +3,7 @@ package com.sparta.fcfsproject.order.controller;
 import com.sparta.fcfsproject.auth.config.AuthFacade;
 import com.sparta.fcfsproject.auth.entity.User;
 import com.sparta.fcfsproject.order.dto.CartItem;
+import com.sparta.fcfsproject.order.dto.UpdateCartItemRequest;
 import com.sparta.fcfsproject.order.service.CartService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/cart")
 public class CartController {
-        private final CartService cartService;
+    private final CartService cartService;
 
     public CartController(CartService cartService) {
         this.cartService = cartService;
@@ -36,10 +37,12 @@ public class CartController {
     }
 
     // 장바구니 수량 수정
-    @PatchMapping("/{ticketId}")
-    public ResponseEntity<String> updateItemQuantity(@PathVariable("ticketId") Long ticketId, @RequestParam("newQuantity") Integer newQuantity){
+    @PatchMapping("/{ticketId}/quantity")
+    public ResponseEntity<String> updateItemQuantity(
+            @PathVariable("ticketId") Long ticketId,
+            @Valid @RequestBody UpdateCartItemRequest updateCartItemRequest) {
         User user = AuthFacade.getCurrentUser();
-        cartService.updateItemQuantity(user, ticketId, newQuantity);
+        cartService.updateItemQuantity(user, ticketId, updateCartItemRequest);
         return ResponseEntity.ok("상품 수량이 수정되었습니다.");
     }
 
