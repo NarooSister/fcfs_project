@@ -11,7 +11,7 @@ import lombok.*;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "User", indexes = {
+@Table(name = "user", indexes = {
         @Index(name = "idx_username", columnList = "username", unique = true)
 })
 public class User extends BaseEntity {
@@ -47,6 +47,7 @@ public class User extends BaseEntity {
         this.address = address;
         this.role = role;
     }
+
     public void updateProfile(String phoneNumber, String address) {
         // phoneNumber가 null이 아닌 경우에만 업데이트
         if (phoneNumber != null) {
@@ -57,6 +58,7 @@ public class User extends BaseEntity {
             this.address = address;
         }
     }
+
     public void updatePassword(String password){
         this.password = password;
     }

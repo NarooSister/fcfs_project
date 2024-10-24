@@ -1,9 +1,7 @@
 package com.sparta.fcfsproject.order.repository;
 
-import com.sparta.fcfsproject.common.exception.OrderBusinessException;
 import com.sparta.fcfsproject.order.dto.CartItem;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;

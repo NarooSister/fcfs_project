@@ -35,7 +35,6 @@ public class WebSecurityConfig {
     private String salt;
 
     public WebSecurityConfig(AuthenticationConfiguration authenticationConfiguration, JWTUtil jwtUtil, RedisTemplate<String, Object> redisTemplate, CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
-
         this.authenticationConfiguration = authenticationConfiguration;
         this.jwtUtil = jwtUtil;
         this.redisTemplate = redisTemplate;
@@ -44,7 +43,6 @@ public class WebSecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-
         return configuration.getAuthenticationManager();
     }
 
@@ -69,7 +67,7 @@ public class WebSecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/signup", "/", "/join", "/reissue", "/verify-email", "/verify-email/confirm", "/tickets").permitAll()
-                        .requestMatchers("/update-profile", "/update-password","/orders/*").authenticated()
+                        .requestMatchers("/update-profile", "/update-password", "/orders/*", "/cart/*").authenticated()
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JWTFilter(jwtUtil), LoginFilter.class)

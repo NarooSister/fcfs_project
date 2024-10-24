@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-
 @Service
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
@@ -41,6 +40,7 @@ public class UserService implements UserDetailsService {
         // 사용자 정보가 존재할 경우 UserDetails로 변환
         return new CustomUserDetails(userData);
     }
+
     @Transactional
     public void signup(SignupRequest request) {
         // 회원정보를 암호화

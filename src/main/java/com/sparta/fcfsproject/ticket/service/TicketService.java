@@ -1,7 +1,5 @@
 package com.sparta.fcfsproject.ticket.service;
 
-import com.sparta.fcfsproject.auth.entity.User;
-import com.sparta.fcfsproject.common.exception.OrderBusinessException;
 import com.sparta.fcfsproject.common.exception.TicketBusinessException;
 import com.sparta.fcfsproject.common.exception.TicketServiceErrorCode;
 import com.sparta.fcfsproject.ticket.dto.TicketDto;
@@ -10,9 +8,7 @@ import com.sparta.fcfsproject.ticket.repository.TicketRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service

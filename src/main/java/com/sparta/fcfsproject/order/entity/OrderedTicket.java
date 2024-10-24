@@ -24,11 +24,13 @@ public class OrderedTicket extends BaseEntity {
     private Integer price;
     @Enumerated(EnumType.STRING)
     private Status status;
+
     public enum Status {
         PENDING,   // 주문 처리 중
         CANCELED,   // 취소 완료
         COMPLETED    // 관람 완료
     }
+
     // 정적 팩토리 메서드
     public static OrderedTicket createPending(Long orderId, Long ticketId, Integer quantity, Integer price) {
         OrderedTicket orderedTicket = new OrderedTicket();
@@ -45,12 +47,5 @@ public class OrderedTicket extends BaseEntity {
             throw new OrderBusinessException(OrderServiceErrorCode.CANNOT_CANCEL_ORDER);
         }
         this.status = Status.CANCELED;
-    }
-
-    public void complete() {
-        if (this.status != Status.PENDING) {
-            throw new IllegalStateException("Order cannot be completed in current state");
-        }
-        this.status = Status.COMPLETED;
     }
 }

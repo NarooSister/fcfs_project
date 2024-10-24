@@ -56,9 +56,6 @@ public class UserController {
     @PatchMapping("/update-profile")
     public ResponseEntity<String> updateProfile(@RequestBody UpdateProfileRequest request) {
         User user = AuthFacade.getCurrentUser();
-        if (user == null) {
-            throw new UserBusinessException(UserServiceErrorCode.AUTH_USER_NOT_FOUND);
-        }
         userService.updateProfile(user, request);
         return new ResponseEntity<>("프로필이 성공적으로 업데이트되었습니다.", HttpStatus.OK);
     }
@@ -67,9 +64,6 @@ public class UserController {
     @PatchMapping("/update-password")
     public ResponseEntity<String> updatePassword(@RequestBody UpdatePasswordRequest request) {
         User user = AuthFacade.getCurrentUser();
-        if (user == null) {
-            throw new UserBusinessException(UserServiceErrorCode.AUTH_USER_NOT_FOUND);
-        }
         userService.updatePassword(user, request);
         return new ResponseEntity<>("비밀번호가 성공적으로 수정되었습니다.", HttpStatus.OK);
     }

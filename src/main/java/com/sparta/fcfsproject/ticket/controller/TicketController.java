@@ -1,14 +1,8 @@
 package com.sparta.fcfsproject.ticket.controller;
 
-import com.sparta.fcfsproject.auth.config.AuthFacade;
-import com.sparta.fcfsproject.auth.entity.User;
-import com.sparta.fcfsproject.common.exception.UserBusinessException;
-import com.sparta.fcfsproject.common.exception.UserServiceErrorCode;
 import com.sparta.fcfsproject.ticket.dto.TicketDto;
 import com.sparta.fcfsproject.ticket.service.TicketService;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

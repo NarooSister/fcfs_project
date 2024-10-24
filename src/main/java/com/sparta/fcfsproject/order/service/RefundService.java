@@ -1,6 +1,5 @@
 package com.sparta.fcfsproject.order.service;
 
-
 import com.sparta.fcfsproject.order.entity.OrderedTicket;
 import com.sparta.fcfsproject.ticket.entity.Ticket;
 import org.springframework.stereotype.Service;

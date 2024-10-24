@@ -1,9 +1,7 @@
 package com.sparta.fcfsproject.auth.service;
 
-
 import org.springframework.security.crypto.encrypt.BytesEncryptor;
 import org.springframework.stereotype.Service;
-
 import java.nio.charset.StandardCharsets;
 
 @Service

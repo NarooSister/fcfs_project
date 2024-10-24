@@ -1,8 +1,6 @@
 package com.sparta.fcfsproject.ticket.entity;
 
 import com.sparta.fcfsproject.common.entity.BaseEntity;
-import com.sparta.fcfsproject.common.exception.TicketBusinessException;
-import com.sparta.fcfsproject.common.exception.TicketServiceErrorCode;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -14,7 +14,6 @@ import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 @Service
-
 public class EmailService {
     private final JavaMailSender mailSender;
     private final RedisTemplate<String, String> redisTemplate;
