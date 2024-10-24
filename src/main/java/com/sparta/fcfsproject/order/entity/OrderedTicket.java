@@ -4,12 +4,16 @@ import com.sparta.fcfsproject.common.entity.BaseEntity;
 import com.sparta.fcfsproject.common.exception.OrderBusinessException;
 import com.sparta.fcfsproject.common.exception.OrderServiceErrorCode;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "Ordered_ticket", indexes = {
         @Index(name = "idx_ticket_id", columnList = "ticket_id"),
         @Index(name = "idx_order_id", columnList = "order_id")

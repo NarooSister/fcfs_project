@@ -2,12 +2,14 @@ package com.sparta.fcfsproject.order.entity;
 
 import com.sparta.fcfsproject.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "orders", indexes = {
         @Index(name = "idx_user_id", columnList = "user_id")
 })

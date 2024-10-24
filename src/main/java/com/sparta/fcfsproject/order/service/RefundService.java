@@ -2,6 +2,8 @@ package com.sparta.fcfsproject.order.service;
 
 import com.sparta.fcfsproject.order.entity.OrderedTicket;
 import com.sparta.fcfsproject.ticket.entity.Ticket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -9,6 +11,7 @@ import java.time.temporal.ChronoUnit;
 
 @Service
 public class RefundService {
+    private static final Logger logger = LoggerFactory.getLogger(RefundService.class);
 
     public double calculateRefund(Ticket ticket, OrderedTicket orderedTicket) {
         RefundPolicy refundPolicy = getRefundPolicy(ticket.getDate(), orderedTicket.getCreatedAt().toLocalDate());

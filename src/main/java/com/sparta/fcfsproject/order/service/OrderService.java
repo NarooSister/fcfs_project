@@ -58,7 +58,6 @@ public class OrderService {
         List<OrderedTicketDto> orderedTickets = orderRequestDto.getOrderedTickets();
         // 주문 생성
         Orders order = new Orders(user.getId());
-        orderRepository.save(order);
 
         // 주문 처리
         for (OrderedTicketDto orderedTicketDto : orderedTickets) {

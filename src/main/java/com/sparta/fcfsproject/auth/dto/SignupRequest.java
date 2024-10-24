@@ -4,6 +4,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 @Getter
 public class SignupRequest {
@@ -29,4 +31,13 @@ public class SignupRequest {
 
     @NotBlank(message = "이메일 인증 코드를 입력해주세요.")
     private String verificationCode;
+
+    public SignupRequest(String username, String email, String password, String name, String phoneNumber, String address) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.phoneNumber = phoneNumber;
+        this.address = address;
+    }
 }

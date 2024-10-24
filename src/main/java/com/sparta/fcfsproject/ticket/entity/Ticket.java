@@ -2,6 +2,7 @@ package com.sparta.fcfsproject.ticket.entity;
 
 import com.sparta.fcfsproject.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +11,7 @@ import java.time.LocalDate;
 @Entity
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class Ticket extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -47,8 +49,18 @@ public class Ticket extends BaseEntity {
         this.stock -= quantity;
     }
 
-    // 추가 메서드 예시 (재고 복구)
+    // 재고 복구
     public void restoreStock(int quantity) {
         this.stock += quantity;
+    }
+
+    public Ticket(String name, Integer price, Integer stock, String description, LocalDate date, Status status, Type type) {
+        this.name = name;
+        this.price = price;
+        this.stock = stock;
+        this.description = description;
+        this.date = date;
+        this.status = status;
+        this.type = type;
     }
 }
