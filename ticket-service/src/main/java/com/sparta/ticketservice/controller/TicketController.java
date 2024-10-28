@@ -32,10 +32,4 @@ public class TicketController {
         TicketDto ticket = ticketService.readTicket(ticketId);
         return ResponseEntity.ok(ticket);
     }
-    @PostMapping("/{ticketId}/restore")
-    public ResponseEntity<Void> restoreStock(@PathVariable("ticketId") Long ticketId, @RequestParam("quantity") int quantity) {
-        ticketService.restoreStock(ticketId, quantity);
-        return ResponseEntity.ok().build();
-    }
-
 }
