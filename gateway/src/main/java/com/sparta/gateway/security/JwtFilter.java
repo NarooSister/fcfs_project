@@ -35,6 +35,11 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();
 
+            // Authorization 헤더가 없으면 Unauthorized 처리
+            if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+                return handleUnauthorized(response, "Missing Authorization header.");
+            }
+
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 return chain.filter(exchange);
             }
