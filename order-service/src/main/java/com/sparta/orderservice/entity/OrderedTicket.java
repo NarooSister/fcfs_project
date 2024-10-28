@@ -1,14 +1,13 @@
 package com.sparta.orderservice.entity;
 
-import com.sparta.fcfsproject.common.entity.BaseEntity;
-import com.sparta.fcfsproject.common.exception.OrderBusinessException;
-import com.sparta.fcfsproject.common.exception.OrderServiceErrorCode;
+import com.sparta.orderservice.exception.OrderBusinessException;
+import com.sparta.orderservice.exception.OrderServiceErrorCode;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -29,10 +28,10 @@ public class OrderedTicket{
     private Integer quantity;
     private Integer price;
 
-    @CreatedDate
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
     @Enumerated(EnumType.STRING)
