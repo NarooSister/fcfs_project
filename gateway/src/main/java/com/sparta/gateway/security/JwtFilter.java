@@ -15,6 +15,8 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 
@@ -24,6 +26,17 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
 
     @Value("${service.jwt.secret.key}")
     private String jwtSecret;
+
+    // 인증이 필요 없는 경로를 여기에 설정합니다.
+    private final List<String> publicPaths = Arrays.asList(
+            "/login",
+            "/signup",
+            "/verify-email",
+            "/verify-email/confirm"
+    );
+    private final List<String> internalPaths = Arrays.asList(
+            "/internal/"  // 내부 호출 전용 패턴
+    );
 
     public JwtFilter() {
         super(Config.class);
@@ -35,13 +48,15 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();
 
+            // 인증 예외 경로인지 확인
+            String path = request.getURI().getPath();
+            if (publicPaths.contains(path) || isInternalPath(path)) {
+                return chain.filter(exchange); // 예외 경로는 필터 통과
+            }
+
             // Authorization 헤더가 없으면 Unauthorized 처리
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 return handleUnauthorized(response, "Missing Authorization header.");
-            }
-
-            if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                return chain.filter(exchange);
             }
 
             String authHeader = request.getHeaders().getOrEmpty(HttpHeaders.AUTHORIZATION).get(0);
@@ -97,5 +112,10 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
     public static class Config {
         private boolean preLogger;
         private boolean postLogger;
+    }
+
+    // 내부 호출 확인 메서드
+    private boolean isInternalPath(String path) {
+        return internalPaths.stream().anyMatch(path::contains);
     }
 }
