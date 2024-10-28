@@ -22,29 +22,29 @@ public class CartRepository {
     }
 
     // 장바구니에 상품 추가 (3일 뒤 만료)
-    public void addItemToCart(Long userId, CartItem cartItem) {
-        hashOperations.put(CART_PREFIX + userId, String.valueOf(cartItem.getTicketId()), cartItem);
-        redisTemplate.expire(CART_PREFIX + userId, 3, TimeUnit.DAYS);
+    public void addItemToCart(String username, CartItem cartItem) {
+        hashOperations.put(CART_PREFIX + username, String.valueOf(cartItem.getTicketId()), cartItem);
+        redisTemplate.expire(CART_PREFIX + username, 3, TimeUnit.DAYS);
     }
 
     // 장바구니 조회
-    public Map<String, CartItem> getCart(Long userId) {
-        return hashOperations.entries(CART_PREFIX + userId);
+    public Map<String, CartItem> getCart(String username) {
+        return hashOperations.entries(CART_PREFIX + username);
     }
 
     // 장바구니 특정 티켓 조회
-    public CartItem getCartItem(Long userId, Long ticketId) {
-        return hashOperations.get(CART_PREFIX + userId, String.valueOf(ticketId));
+    public CartItem getCartItem(String username, Long ticketId) {
+        return hashOperations.get(CART_PREFIX + username, String.valueOf(ticketId));
     }
 
     // 장바구니에서 특정 상품 삭제
-    public void removeItemFromCart(Long userId, Long ticketId) {
-        hashOperations.delete(CART_PREFIX + userId, String.valueOf(ticketId));
+    public void removeItemFromCart(String username, Long ticketId) {
+        hashOperations.delete(CART_PREFIX + username, String.valueOf(ticketId));
     }
 
     // 장바구니 전체 삭제
-    public void clearCart(Long userId) {
-        redisTemplate.delete(CART_PREFIX + userId);
+    public void clearCart(String username) {
+        redisTemplate.delete(CART_PREFIX + username);
     }
 }
 

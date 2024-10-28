@@ -65,7 +65,9 @@ public class OrderService {
         for (OrderedTicketDto orderedTicketDto : orderedTickets) {
             // 티켓 가져오기
             TicketDto ticket = ticketClient.getTicketById(orderedTicketDto.getTicketId());
-
+            if (ticket == null) {
+                throw new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_FOUND);
+            }
             // 판매 중이 아닌 경우
             if (!"ON_SALE".equals(ticket.status())) {
                 throw new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_ON_SALE);
