@@ -4,6 +4,8 @@ import com.sparta.ticketservice.entity.Ticket;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Getter
 @NoArgsConstructor
 public class TicketDto {
@@ -12,6 +14,7 @@ public class TicketDto {
     private Integer price;
     private Integer stock;
     private String description;
+    private LocalDate date;
     private String status;
     private String type;
     public TicketDto(Ticket ticket) {
@@ -20,6 +23,7 @@ public class TicketDto {
         this.price = ticket.getPrice();
         this.stock = ticket.getStock();
         this.description = ticket.getDescription();
+        this.date = ticket.getDate();
         this.status = ticket.getStatus().name();
         this.type = ticket.getType().name();
     }

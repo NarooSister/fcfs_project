@@ -18,7 +18,7 @@ public class CartController {
         this.cartService = cartService;
     }
 
-    // 장바구니에 아이템 추가
+  /*  // 장바구니에 아이템 추가
     @PostMapping
     public ResponseEntity<String> addToCart(@Valid @RequestBody CartItem cartItem) {
         User user = AuthFacade.getCurrentUser();
@@ -58,5 +58,5 @@ public class CartController {
         User user = AuthFacade.getCurrentUser();
         cartService.clearCart(user);
         return ResponseEntity.ok("장바구니가 성공적으로 비워졌습니다.");
-    }
+    }*/
 }

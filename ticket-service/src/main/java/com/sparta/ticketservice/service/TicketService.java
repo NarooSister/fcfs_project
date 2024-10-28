@@ -39,4 +39,13 @@ public class TicketService {
 
         return new TicketDto(ticket);
     }
+    public void restoreStock(Long ticketId, int quantity) {
+        // 티켓 조회
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new TicketBusinessException(TicketServiceErrorCode.TICKET_NOT_FOUND));
+
+        // 재고 복구 로직
+        ticket.restoreStock(quantity);
+        ticketRepository.save(ticket);
+    }
 }

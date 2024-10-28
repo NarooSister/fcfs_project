@@ -15,13 +15,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "orders", indexes = {
-        @Index(name = "idx_user_id", columnList = "user_id")
+        @Index(name = "idx_user_username", columnList = "username")
 })
 public class Orders{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long userId;
+    private String username;
     private Integer totalPrice = 0;
 
     @CreationTimestamp
@@ -30,8 +30,8 @@ public class Orders{
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    public Orders(Long userId) {
-        this.userId = userId;
+    public Orders(String username) {
+        this.username = username;
     }
 
     public void updateTotalPrice(int amount) {

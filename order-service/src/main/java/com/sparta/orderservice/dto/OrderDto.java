@@ -10,12 +10,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class OrderDto {
     private Long id;
-    private Long userId;
+    private String username;
     private LocalDateTime orderDate; // 주문 생성 시간
 
     public OrderDto(Orders order) {
         this.id = order.getId();
-        this.userId = order.getUserId();
+        this.username = order.getUsername();
         this.orderDate = order.getCreatedAt();
     }
 }

@@ -1,17 +1,18 @@
 package com.sparta.orderservice.service;
 
-import com.sparta.fcfsproject.auth.entity.User;
-import com.sparta.fcfsproject.common.exception.OrderBusinessException;
-import com.sparta.fcfsproject.common.exception.OrderServiceErrorCode;
+
+import com.sparta.orderservice.client.TicketClient;
 import com.sparta.orderservice.dto.OrderDto;
 import com.sparta.orderservice.dto.OrderRequestDto;
 import com.sparta.orderservice.dto.OrderedTicketDto;
+import com.sparta.orderservice.dto.TicketDto;
 import com.sparta.orderservice.entity.OrderedTicket;
 import com.sparta.orderservice.entity.Orders;
+import com.sparta.orderservice.exception.OrderBusinessException;
+import com.sparta.orderservice.exception.OrderServiceErrorCode;
 import com.sparta.orderservice.repository.OrderRepository;
 import com.sparta.orderservice.repository.OrderedTicketRepository;
-import com.sparta.fcfsproject.ticket.entity.Ticket;
-import com.sparta.fcfsproject.ticket.repository.TicketRepository;
+
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -22,19 +23,19 @@ import java.util.stream.Collectors;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderedTicketRepository orderedTicketRepository;
-    private final TicketRepository ticketRepository;
-    private final RefundService refundService;
+    private final TicketClient ticketClient;
+   private final RefundService refundService;
 
-    public OrderService(OrderRepository orderRepository, OrderedTicketRepository orderedTicketRepository, TicketRepository ticketRepository, RefundService refundService) {
+    public OrderService(OrderRepository orderRepository, OrderedTicketRepository orderedTicketRepository, RefundService refundService, TicketClient ticketClient) {
         this.orderRepository = orderRepository;
-        this.ticketRepository = ticketRepository;
         this.orderedTicketRepository = orderedTicketRepository;
         this.refundService = refundService;
+        this.ticketClient = ticketClient;
     }
 
     // 사용자의 모든 주문 가져오기
-    public List<OrderDto> readAllOrders(User user) {
-        List<Orders> orderList = orderRepository.findAllByUserId(user.getId());
+    public List<OrderDto> readAllOrders(String username) {
+        List<Orders> orderList = orderRepository.findAllByUsername(username);
         if (orderList.isEmpty()) {
             throw new OrderBusinessException(OrderServiceErrorCode.ALL_ORDER_NOT_FOUND);
         }
@@ -44,8 +45,8 @@ public class OrderService {
     }
 
     // 사용자의 주문 상세 내역 가져오기
-    public OrderDto readOrder(User user, Long orderId) {
-        Orders order = orderRepository.findByIdAndUserId(orderId, user.getId())
+    public OrderDto readOrder(String username, Long orderId) {
+        Orders order = orderRepository.findByIdAndUsername(orderId, username)
                 .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND)
                 );
         return new OrderDto(order);
@@ -53,38 +54,32 @@ public class OrderService {
 
     // 기본 주문 생성 구현 (TODO : 주문 생성 나중에 추가)
     @Transactional
-    public void createOrder(User user, OrderRequestDto orderRequestDto) {
+    public void createOrder(String username, OrderRequestDto orderRequestDto) {
         // 주문 티켓 리스트 가져오기
         List<OrderedTicketDto> orderedTickets = orderRequestDto.getOrderedTickets();
         // 주문 생성
-        Orders order = new Orders(user.getId());
+        Orders order = new Orders(username);
+        orderRepository.save(order);
 
         // 주문 처리
         for (OrderedTicketDto orderedTicketDto : orderedTickets) {
             // 티켓 가져오기
-            Ticket ticket = ticketRepository.findById(orderedTicketDto.getTicketId())
-                    .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_FOUND));
+            TicketDto ticket = ticketClient.getTicketById(orderedTicketDto.getTicketId());
 
             // 판매 중이 아닌 경우
-            if (!Ticket.Status.ON_SALE.equals(ticket.getStatus())) {
+            if (!"ON_SALE".equals(ticket.status())) {
                 throw new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_ON_SALE);
             }
-
-            // 재고 확인
-            if (ticket.getStock() < orderedTicketDto.getQuantity()) {
+            if (ticket.stock() < orderedTicketDto.getQuantity()) {
                 throw new OrderBusinessException(OrderServiceErrorCode.INSUFFICIENT_STOCK);
             }
-
-            // 재고 차감
-            ticket.reduceStock(orderedTicketDto.getQuantity());
-            ticketRepository.save(ticket);  // 재고 업데이트
 
             // 오더 티켓 생성
             OrderedTicket orderedTicket = OrderedTicket.createPending(
                     order.getId(),
-                    ticket.getId(),
+                    ticket.id(),
                     orderedTicketDto.getQuantity(),
-                    ticket.getPrice() * orderedTicketDto.getQuantity()
+                    ticket.price() * orderedTicketDto.getQuantity()
             );
             orderedTicketRepository.save(orderedTicket);
 
@@ -95,17 +90,19 @@ public class OrderService {
     }
 
     // 주문 취소 로직
-    public void cancelOrder(User user, Long orderId) {
+    public void cancelOrder(String username, Long orderId) {
         // 사용자와 주문 아이디로 주문 찾기
-        Orders order = orderRepository.findByIdAndUserId(orderId, user.getId())
+        Orders order = orderRepository.findByIdAndUsername(orderId, username)
                 .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
 
         List<OrderedTicket> orderedTickets = orderedTicketRepository.findByOrderId(orderId);
 
         for (OrderedTicket orderedTicket : orderedTickets) {
             // 티켓 가져오기
-            Ticket ticket = ticketRepository.findById(orderedTicket.getTicketId())
-                    .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_FOUND));
+            TicketDto ticket = ticketClient.getTicketById(orderedTicket.getTicketId());
+            if (ticket == null) {
+                throw new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_FOUND);
+            }
 
             // 티켓 관람일 기준으로 환불 금액 계산
             double refundAmount = refundService.calculateRefund(ticket, orderedTicket);
@@ -115,12 +112,11 @@ public class OrderService {
 
             // 티켓 취소 처리
             orderedTicket.cancel();
-            orderedTicketRepository.save(orderedTicket);
 
             // 재고 복구
-            ticket.restoreStock(orderedTicket.getQuantity());
-            ticketRepository.save(ticket);
+            ticketClient.restoreStock(ticket.id(), orderedTicket.getQuantity());
         }
+        orderedTicketRepository.saveAll(orderedTickets);
         orderRepository.save(order);
     }
 
