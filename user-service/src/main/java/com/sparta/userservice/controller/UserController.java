@@ -1,14 +1,12 @@
 package com.sparta.userservice.controller;
 
 import com.sparta.userservice.dto.*;
-import com.sparta.userservice.entity.User;
 import com.sparta.userservice.exception.UserBusinessException;
 import com.sparta.userservice.exception.UserServiceErrorCode;
 import com.sparta.userservice.service.EmailService;
 import com.sparta.userservice.service.UserService;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

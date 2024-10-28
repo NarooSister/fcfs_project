@@ -20,6 +20,7 @@ public class TicketController {
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("User service is reachable through Gateway!");
     }
+
     @GetMapping
     public ResponseEntity<List<TicketDto>> readAllTicket() {
         // 서비스에서 모든 티켓을 조회하여 반환

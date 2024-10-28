@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @Table(name = "user", indexes = {
         @Index(name = "idx_username", columnList = "username", unique = true)
 })
-public class User{
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -56,7 +56,10 @@ public class User{
         this.phoneNumber = phoneNumber;
         this.address = address;
         this.role = role;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
+
 
     public void updateProfile(String phoneNumber, String address) {
         // phoneNumber가 null이 아닌 경우에만 업데이트

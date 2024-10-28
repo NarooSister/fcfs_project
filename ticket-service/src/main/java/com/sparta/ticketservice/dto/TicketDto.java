@@ -23,5 +23,4 @@ public class TicketDto {
         this.status = ticket.getStatus().name();
         this.type = ticket.getType().name();
     }
-
 }
