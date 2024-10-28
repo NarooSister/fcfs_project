@@ -69,7 +69,7 @@ public class UserService implements UserDetailsService {
         userRepository.save(user);
     }
 
-
+    @Transactional
     public void updateProfile(String username, UpdateProfileRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserBusinessException(UserServiceErrorCode.USER_NOT_FOUND));
