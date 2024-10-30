@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "ticket-service") // ticket-service를 가리킴
+@FeignClient(name = "gateway") // ticket-service를 가리킴
 public interface TicketClient {
-    @GetMapping("/internal/tickets/{ticketId}")
+    @GetMapping("/ticket-service/internal/tickets/{ticketId}")
     TicketDto getTicketById(@PathVariable("ticketId") Long ticketId);
 
     @PostMapping("/internal/tickets/{ticketId}/restore")

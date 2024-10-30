@@ -39,6 +39,7 @@ public class TicketService {
 
         return new TicketDto(ticket);
     }
+
     public void restoreStock(Long ticketId, int quantity) {
         // 티켓 조회
         Ticket ticket = ticketRepository.findById(ticketId)
