@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_ticket_id", columnList = "ticket_id"),
         @Index(name = "idx_order_id", columnList = "order_id")
 })
-public class OrderedTicket{
+public class OrderedTicket {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -34,6 +34,20 @@ public class OrderedTicket{
 
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    public OrderedTicket() {
+    }
+
+    public OrderedTicket(Long id, Long ticketId, Long orderId, Integer quantity, Integer price, LocalDateTime createdAt, LocalDateTime updatedAt, Status status) {
+        this.id = id;
+        this.ticketId = ticketId;
+        this.orderId = orderId;
+        this.quantity = quantity;
+        this.price = price;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.status = status;
+    }
 
     public enum Status {
         PENDING,   // 주문 처리 중

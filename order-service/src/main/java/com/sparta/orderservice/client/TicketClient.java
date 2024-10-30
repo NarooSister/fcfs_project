@@ -13,7 +13,7 @@ public interface TicketClient {
     @GetMapping("/ticket-service/internal/tickets/{ticketId}")
     TicketDto getTicketById(@PathVariable("ticketId") Long ticketId);
 
-    @PostMapping("/internal/tickets/{ticketId}/restore")
+    @PostMapping("/ticket-service/internal/tickets/{ticketId}/restore")
     void restoreStock(@PathVariable("ticketId") Long ticketId, @RequestParam("quantity") int quantity);
 
     @GetMapping("/internal/errorful/case1")
