@@ -54,8 +54,8 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         String role = auth.getAuthority();
 
         //토큰 생성
-        String access = jwtUtil.createJwt(username, role, 86400000L);  // 10분(600000)
-        String refresh = jwtUtil.createJwtWithSession(username, role, sessionId, 86400000L);  // 1일 만료, sessionId 포함
+        String access = jwtUtil.createAccessToken(username, role, 86400000L);  // 10분(600000)
+        String refresh = jwtUtil.createRefreshToken(username, role, sessionId, 86400000L);  // 1일 만료, sessionId 포함
 
         //Redis에 Refresh 토큰 저장 (sessionId를 포함)
         redisTemplate.opsForValue().set(username + ":" + sessionId, refresh, 86400000L, TimeUnit.MILLISECONDS);

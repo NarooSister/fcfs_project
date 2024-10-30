@@ -17,13 +17,9 @@ public class JWTUtil {
 
     private SecretKey secretKey;
 
-    public JWTUtil(@Value("${spring.jwt.secret}")String secret) {
+    public JWTUtil(@Value("${jwt.secret.key}")String secret) {
 
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-    }
-    // 비밀 키를 반환하는 메서드 추가
-    public SecretKey getSecretKey() {
-        return secretKey;
     }
 
     public String getUsername(String token) {
@@ -65,7 +61,7 @@ public class JWTUtil {
                 .get("sessionId", String.class);  // sessionId를 claim에서 추출
     }
 
-    public String createJwtWithSession(String username, String role, String sessionId, Long expiredMs) {
+    public String createRefreshToken(String username, String role, String sessionId, Long expiredMs) {
         return Jwts.builder()
                 .claim("username", username)
                 .claim("role", role)
@@ -76,8 +72,7 @@ public class JWTUtil {
                 .compact();
     }
 
-    public String createJwt(String username, String role, Long expiredMs) {
-
+    public String createAccessToken(String username, String role, Long expiredMs) {
         return Jwts.builder()
                 .claim("username", username)
                 .claim("role", role)
@@ -86,6 +81,7 @@ public class JWTUtil {
                 .signWith(secretKey)
                 .compact();
     }
+
     public Boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()

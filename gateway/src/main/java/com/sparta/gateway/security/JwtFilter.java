@@ -24,7 +24,7 @@ import java.util.Map;
 @Slf4j
 public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
 
-    @Value("${service.jwt.secret.key}")
+    @Value("${jwt.secret.key}")
     private String jwtSecret;
 
     // 인증이 필요 없는 경로를 여기에 설정합니다.
@@ -34,6 +34,7 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
             "/verify-email",
             "/verify-email/confirm"
     );
+
     private final List<String> internalPaths = Arrays.asList(
             "/internal/"  // 내부 호출 전용 패턴
     );
@@ -50,6 +51,7 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
 
             // 인증 예외 경로인지 확인
             String path = request.getURI().getPath();
+            log.info("JwtFilter is applied for path: {}", request.getURI().getPath());
             if (publicPaths.contains(path) || isInternalPath(path)) {
                 return chain.filter(exchange); // 예외 경로는 필터 통과
             }
@@ -76,7 +78,6 @@ public class JwtFilter extends AbstractGatewayFilterFactory<JwtFilter.Config> {
                 log.info("JWT Claims: ");
                 ServerHttpRequest.Builder mutatedRequest = request.mutate();
                 for (Map.Entry<String, Object> entry : claims.entrySet()) {
-                    System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ x-claim");
                     String claimKey = "X-Claim-" + entry.getKey();
                     String claimValue = String.valueOf(entry.getValue());
                     mutatedRequest.header(claimKey, claimValue);

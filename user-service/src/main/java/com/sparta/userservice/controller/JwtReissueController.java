@@ -59,8 +59,8 @@ public class JwtReissueController {
         }
 
         //make new JWT
-        String newAccess = jwtUtil.createJwt(username, role, 600000L);
-        String newRefresh = jwtUtil.createJwtWithSession(username, role, sessionId, 86400000L);  // 1 day
+        String newAccess = jwtUtil.createAccessToken(username, role, 600000L);
+        String newRefresh = jwtUtil.createRefreshToken(username, role, sessionId, 86400000L);  // 1 day
 
         // Redis에 저장된 기존 Refresh 토큰 삭제
         redisTemplate.delete(redisKey);
