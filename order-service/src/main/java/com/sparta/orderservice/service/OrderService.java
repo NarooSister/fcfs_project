@@ -14,6 +14,7 @@ import com.sparta.orderservice.repository.OrderRepository;
 import com.sparta.orderservice.repository.OrderedTicketRepository;
 
 import jakarta.transaction.Transactional;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,13 +25,21 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderedTicketRepository orderedTicketRepository;
     private final TicketClient ticketClient;
-   private final RefundService refundService;
+    private final RefundService refundService;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
-    public OrderService(OrderRepository orderRepository, OrderedTicketRepository orderedTicketRepository, RefundService refundService, TicketClient ticketClient) {
+    public OrderService(OrderRepository orderRepository, OrderedTicketRepository orderedTicketRepository, RefundService refundService, TicketClient ticketClient, KafkaTemplate<String, String> kafkaTemplate) {
         this.orderRepository = orderRepository;
         this.orderedTicketRepository = orderedTicketRepository;
         this.refundService = refundService;
         this.ticketClient = ticketClient;
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
+    public void sendMessage(String topic, String key, String message) {
+        for (int i = 0; i < 10; i++) {
+            kafkaTemplate.send(topic, key, message + " " + i);
+        }
     }
 
     // 사용자의 모든 주문 가져오기
