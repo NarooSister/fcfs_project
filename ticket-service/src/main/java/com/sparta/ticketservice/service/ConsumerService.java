@@ -1,5 +1,12 @@
 package com.sparta.ticketservice.service;
 
+import com.sparta.ticketservice.entity.Ticket;
+import com.sparta.ticketservice.event.StockDecrEvent;
+import com.sparta.ticketservice.event.StockIncrEvent;
+import com.sparta.ticketservice.exception.TicketBusinessException;
+import com.sparta.ticketservice.exception.TicketServiceErrorCode;
+import com.sparta.ticketservice.repository.TicketRepository;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -7,35 +14,42 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 public class ConsumerService {
-    // 이 메서드는 Kafka에서 메시지를 소비하는 리스너 메서드입니다.
-    // @KafkaListener 어노테이션은 이 메서드를 Kafka 리스너로 설정합니다.
-    @KafkaListener(groupId = "group_a", topics = "topic1")
-    // Kafka 토픽 "test-topic"에서 메시지를 수신하면 이 메서드가 호출됩니다.
-    // groupId는 컨슈머 그룹을 지정하여 동일한 그룹에 속한 다른 컨슈머와 메시지를 분배받습니다.
-    public void consumeFromGroupA(String message) {
-        log.info("Group A consumed message from topic1: " + message);
+    private final TicketRepository ticketRepository;
+
+    public ConsumerService(TicketRepository ticketRepository) {
+        this.ticketRepository = ticketRepository;
     }
 
-    // 동일한 토픽을 다른 그룹 ID로 소비하는 또 다른 리스너 메서드입니다.
-    @KafkaListener(groupId = "group_b", topics = "topic1")
-    public void consumeFromGroupB(String message) {
-        log.info("Group B consumed message from topic1: " + message);
+    @KafkaListener(topics = "stock-decrement-topic", groupId = "ticket-service-group")
+    @Transactional
+    public void handleOrderCreatedEvent(StockDecrEvent event) {
+        log.info("Received OrderCreatedEvent for Order ID: {} and Ticket ID: {}", event.getOrderId(), event.getTicketId());
+
+        Ticket ticket = ticketRepository.findById(event.getTicketId())
+                .orElseThrow(() -> new TicketBusinessException(TicketServiceErrorCode.TICKET_NOT_FOUND));
+
+        // 재고 확인 및 차감
+        if (ticket.getStock() < event.getQuantity()) {
+            throw new TicketBusinessException(TicketServiceErrorCode.INSUFFICIENT_STOCK);
+        }
+
+        ticket.decrementStock(event.getQuantity());
+        ticketRepository.save(ticket);
+
+        log.info("Stock updated for Ticket ID: {}. New stock: {}", ticket.getId(), ticket.getStock());
     }
 
-    // 다른 토픽을 다른 그룹 ID로 소비하는 리스너 메서드입니다.
-    @KafkaListener(groupId = "group_c", topics = "topic2")
-    public void consumeFromTopicC(String message) {
-        log.info("Group C consumed message from topic2: " + message);
-    }
+    // 재고 복구 이벤트 처리
+    @KafkaListener(topics = "stock-restore-topic", groupId = "ticket-service-group")
+    @Transactional
+    public void handleStockRestoreEvent(StockIncrEvent event) {
+        Ticket ticket = ticketRepository.findById(event.getTicketId())
+                .orElseThrow(() -> new TicketBusinessException(TicketServiceErrorCode.TICKET_NOT_FOUND));
 
-    // 다른 토픽을 다른 그룹 ID로 소비하는 리스너 메서드입니다.
-    @KafkaListener(groupId = "group_c", topics = "topic3")
-    public void consumeFromTopicD(String message) {
-        log.info("Group C consumed message from topic3: " + message);
-    }
+        // 재고 복구
+        ticket.incrementStock(event.getQuantity());
+        ticketRepository.save(ticket);
 
-    @KafkaListener(groupId = "group_d", topics = "topic4")
-    public void consumeFromPartition0(String message) {
-        log.info("Group D consumed message from topic4: " + message);
+        log.info("Stock restored for Ticket ID: {}. New stock: {}", ticket.getId(), ticket.getStock());
     }
 }

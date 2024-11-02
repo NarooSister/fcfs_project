@@ -10,12 +10,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class KafkaController {
     private final OrderService orderService;
-    @GetMapping("/send")
-    public String sendMessage(@RequestParam("topic") String topic,
-                              @RequestParam("key") String key,
-                              @RequestParam("message") String message) {
-        orderService.sendMessage(topic, key, message);
-        return "Message sent to Kafka topic";
-    }
+//    @GetMapping("/send")
+//    public String sendMessage(@RequestParam("topic") String topic,
+//                              @RequestParam("key") String key,
+//                              @RequestParam("message") String message) {
+//        orderService.sendMessage(topic, key, message);
+//        return "Message sent to Kafka topic";
+//    }
 
 }

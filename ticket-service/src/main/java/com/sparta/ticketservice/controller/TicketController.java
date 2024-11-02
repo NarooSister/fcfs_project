@@ -10,7 +10,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/tickets")
+@RequestMapping("/ticket")
 public class TicketController {
     private final TicketService ticketService;
     @GetMapping("/test")

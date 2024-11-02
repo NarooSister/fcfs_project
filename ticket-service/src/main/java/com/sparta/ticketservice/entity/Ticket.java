@@ -43,6 +43,8 @@ public class Ticket{
     @Enumerated(EnumType.STRING)
     private Type type;
 
+
+
     public enum Status{
         PENDING,    // 준비 중
         ON_SALE,    // 판매 중
@@ -55,12 +57,12 @@ public class Ticket{
     }
 
     // 재고 차감 메서드
-    public void reduceStock(int quantity) {
+    public void decrementStock(int quantity) {
         this.stock -= quantity;
     }
 
     // 재고 복구
-    public void restoreStock(int quantity) {
+    public void incrementStock(int quantity) {
         this.stock += quantity;
     }
 

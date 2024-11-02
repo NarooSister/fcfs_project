@@ -8,12 +8,15 @@ import com.sparta.orderservice.dto.OrderedTicketDto;
 import com.sparta.orderservice.dto.TicketDto;
 import com.sparta.orderservice.entity.OrderedTicket;
 import com.sparta.orderservice.entity.Orders;
+import com.sparta.orderservice.event.StockDecrEvent;
+import com.sparta.orderservice.event.StockIncrEvent;
 import com.sparta.orderservice.exception.OrderBusinessException;
 import com.sparta.orderservice.exception.OrderServiceErrorCode;
 import com.sparta.orderservice.repository.OrderRepository;
 import com.sparta.orderservice.repository.OrderedTicketRepository;
 
 import jakarta.transaction.Transactional;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -26,21 +29,25 @@ public class OrderService {
     private final OrderedTicketRepository orderedTicketRepository;
     private final TicketClient ticketClient;
     private final RefundService refundService;
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, StockDecrEvent> kafkaDecrTemplate;
+    private final KafkaTemplate<String, StockIncrEvent> kafkaIncrTemplate;
+    private final RedisTemplate<String, Integer> redisTemplate;
 
-    public OrderService(OrderRepository orderRepository, OrderedTicketRepository orderedTicketRepository, RefundService refundService, TicketClient ticketClient, KafkaTemplate<String, String> kafkaTemplate) {
+    public OrderService(OrderRepository orderRepository, OrderedTicketRepository orderedTicketRepository, RefundService refundService, TicketClient ticketClient, KafkaTemplate<String, StockDecrEvent> kafkaDecrTemplate, KafkaTemplate<String, StockIncrEvent> kafkaIncrTemplate, RedisTemplate<String, Integer> redisTemplate) {
         this.orderRepository = orderRepository;
         this.orderedTicketRepository = orderedTicketRepository;
         this.refundService = refundService;
         this.ticketClient = ticketClient;
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaDecrTemplate = kafkaDecrTemplate;
+        this.kafkaIncrTemplate = kafkaIncrTemplate;
+        this.redisTemplate = redisTemplate;
     }
 
-    public void sendMessage(String topic, String key, String message) {
-        for (int i = 0; i < 10; i++) {
-            kafkaTemplate.send(topic, key, message + " " + i);
-        }
-    }
+//    public void sendMessage(String topic, String key, String message) {
+//        for (int i = 0; i < 10; i++) {
+//            kafkaTemplate.send(topic, key, message + " " + i);
+//        }
+//    }
 
     // 사용자의 모든 주문 가져오기
     public List<OrderDto> readAllOrders(String username) {
@@ -64,40 +71,80 @@ public class OrderService {
     // 기본 주문 생성 구현 (TODO : 주문 생성 나중에 추가)
     @Transactional
     public void createOrder(String username, OrderRequestDto orderRequestDto) {
-        // 주문 티켓 리스트 가져오기
-        List<OrderedTicketDto> orderedTickets = orderRequestDto.getOrderedTickets();
         // 주문 생성
         Orders order = new Orders(username);
         orderRepository.save(order);
 
-        // 주문 처리
-        for (OrderedTicketDto orderedTicketDto : orderedTickets) {
-            // 티켓 가져오기
-            TicketDto ticket = ticketClient.getTicketById(orderedTicketDto.getTicketId());
-            if (ticket == null) {
-                throw new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_FOUND);
-            }
-            // 판매 중이 아닌 경우
-            if (!"ON_SALE".equals(ticket.status())) {
-                throw new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_ON_SALE);
-            }
-            if (ticket.stock() < orderedTicketDto.getQuantity()) {
+        // Redis에서 재고 확인 및 차감
+        for (OrderedTicketDto orderedTicketDto : orderRequestDto.getOrderedTickets()) {
+            String stockKey = "stock:" + orderedTicketDto.getTicketId();
+            Integer stock = redisTemplate.opsForValue().get(stockKey);
+
+            if (stock == null || stock < orderedTicketDto.getQuantity()) {
                 throw new OrderBusinessException(OrderServiceErrorCode.INSUFFICIENT_STOCK);
             }
 
-            // 오더 티켓 생성
-            OrderedTicket orderedTicket = OrderedTicket.createPending(
-                    order.getId(),
-                    ticket.id(),
-                    orderedTicketDto.getQuantity(),
-                    ticket.price() * orderedTicketDto.getQuantity()
-            );
+            // Redis에서 재고 차감
+            redisTemplate.opsForValue().decrement(stockKey, orderedTicketDto.getQuantity());
+        }
+
+        // 주문 항목 및 총 금액 계산
+        int totalPrice = processOrderItems(order, orderRequestDto.getOrderedTickets());
+
+        // 주문 최종 금액 업데이트
+        order.updateTotalPrice(totalPrice);
+        orderRepository.save(order);
+
+
+        // 재고 차감 이벤트 전송
+        sendStockDecrementEvent(order);
+
+        // 최종적으로 주문 생성 완료
+        // TODO : 결제 프로세스로 연결
+    }
+
+    private int processOrderItems(Orders order, List<OrderedTicketDto> orderedTickets) {
+        int totalPrice = 0;
+
+        for (OrderedTicketDto orderedTicketDto : orderedTickets) {
+            // 티켓 정보 가져오기 및 검증
+            TicketDto ticket = ticketClient.getTicketById(orderedTicketDto.getTicketId());
+            validateTicket(ticket, orderedTicketDto.getQuantity());
+
+            // OrderedTicket 생성 및 저장
+            OrderedTicket orderedTicket = createOrderedTicket(order.getId(), ticket, orderedTicketDto.getQuantity());
             orderedTicketRepository.save(orderedTicket);
 
-            order.updateTotalPrice(orderedTicket.getPrice());
+            // 총 가격 업데이트
+            totalPrice += orderedTicket.getPrice();
         }
-        orderRepository.save(order);
-        // TODO : 결제 프로세스로 연결
+
+        return totalPrice;
+    }
+    private void validateTicket(TicketDto ticket, int requestedQuantity) {
+        if (ticket == null) {
+            throw new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_FOUND);
+        }
+        if (!"ON_SALE".equals(ticket.status())) {
+            throw new OrderBusinessException(OrderServiceErrorCode.TICKET_NOT_ON_SALE);
+        }
+        if (ticket.stock() < requestedQuantity) {
+            throw new OrderBusinessException(OrderServiceErrorCode.INSUFFICIENT_STOCK);
+        }
+    }
+
+    private OrderedTicket createOrderedTicket(Long orderId, TicketDto ticket, int quantity) {
+        return OrderedTicket.createPending(
+                orderId,
+                ticket.id(),
+                quantity,
+                ticket.price() * quantity
+        );
+    }
+
+    private void sendStockDecrementEvent(Orders order) {
+        StockDecrEvent orderEvent = new StockDecrEvent(order.getId(), order.getUsername(), order.getTotalPrice());
+        kafkaDecrTemplate.send("stock-decrement-topic", orderEvent); // 주문 생성 이벤트를 Kafka로 전송
     }
 
     // 주문 취소 로직
@@ -124,13 +171,24 @@ public class OrderService {
             // 티켓 취소 처리
             orderedTicket.cancel();
 
-            // 재고 복구
-            ticketClient.restoreStock(ticket.id(), orderedTicket.getQuantity());
+            // Redis에서 재고 복구
+            String stockKey = "stock:" + orderedTicket.getTicketId();
+            redisTemplate.opsForValue().increment(stockKey, orderedTicket.getQuantity());
+
+            // Kafka를 통해 재고 복구 이벤트 전송
+            sendStockRestoreEvent(orderedTicket);
         }
         orderedTicketRepository.saveAll(orderedTickets);
         orderRepository.save(order);
     }
 
+    private void sendStockRestoreEvent(OrderedTicket orderedTicket) {
+        StockIncrEvent stockRestoreEvent = new StockIncrEvent(
+                orderedTicket.getTicketId(),
+                orderedTicket.getQuantity()
+        );
+        kafkaIncrTemplate.send("stock-restore-topic", stockRestoreEvent); // 재고 복구 이벤트를 Kafka로 전송
+    }
     private void processRefund(double refundAmount) {
         // TODO : 환불 로직
     }

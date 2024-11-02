@@ -46,7 +46,7 @@ public class TicketService {
                 .orElseThrow(() -> new TicketBusinessException(TicketServiceErrorCode.TICKET_NOT_FOUND));
 
         // 재고 복구 로직
-        ticket.restoreStock(quantity);
+        ticket.incrementStock(quantity);
         ticketRepository.save(ticket);
     }
 }
