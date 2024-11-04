@@ -196,7 +196,7 @@ public class OrderService {
     }
 
     // 결제 검증 시뮬레이션 메서드
-    private PaymentResponse simulatePaymentVerification(String paymentKey) {
+    public PaymentResponse simulatePaymentVerification(String paymentKey) {
         // 결제 상태를 성공으로 시뮬레이션
         return new PaymentResponse(paymentKey, 10000, "COMPLETED"); // 예시 금액과 상태 설정
     }

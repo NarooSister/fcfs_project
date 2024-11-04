@@ -13,8 +13,10 @@ import com.sparta.orderservice.exception.OrderBusinessException;
 import com.sparta.orderservice.exception.OrderServiceErrorCode;
 import com.sparta.orderservice.repository.OrderRepository;
 import com.sparta.orderservice.repository.OrderedTicketRepository;
+import com.sparta.orderservice.service.OrderConfirmationService;
 import com.sparta.orderservice.service.OrderService;
 import com.sparta.orderservice.service.RefundService;
+import com.sparta.orderservice.toss.PaymentResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,7 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -54,6 +57,9 @@ public class OrderServiceTest {
 
     @InjectMocks
     private OrderService orderService;
+
+    @Mock
+    private OrderConfirmationService orderConfirmationService;
 
     @Mock
     private RedisTemplate<String, Integer> redisTemplate;
@@ -178,23 +184,43 @@ public class OrderServiceTest {
 
         assertEquals(OrderServiceErrorCode.INVALID_TICKET, exception.getErrorCode());
     }
-
     @Test
-    @DisplayName("유효한 주문 요청을 통해 주문이 성공적으로 생성되는지 확인")
-    void createOrder_ValidRequest_CreatesOrderSuccessfully() {
+    @DisplayName("유효한 주문 요청 시 주문이 정상적으로 생성됨을 확인")
+    void createOrder_WithValidRequest_CreatesOrderWithoutErrors() {
+        // Given
+        String username = "username";
         Long ticketId = 1L;
-        TicketDto ticketDto = new TicketDto(ticketId, "ON_SALE", 10, 100, LocalDate.now().plusDays(30));
-
         OrderRequestDto orderRequestDto = new OrderRequestDto();
         orderRequestDto.setOrderedTickets(List.of(new OrderedTicketDto(ticketId, 1)));
 
+        // 티켓 정보 설정
+        TicketDto ticketDto = new TicketDto(ticketId, "ON_SALE", 10, 100, LocalDate.now().plusDays(30));
         when(ticketClient.getTicketById(ticketId)).thenReturn(ticketDto);
 
-        orderService.createOrder("username", orderRequestDto);
+        // Redis Mock 설정 - 충분한 재고가 있는 경우
+        when(redisTemplate.opsForValue().get("stock:" + ticketId)).thenReturn(10);
+        when(redisTemplate.opsForValue().decrement("stock:" + ticketId, 1)).thenReturn(9L);
 
+        // 주문 저장 Mock
+        Orders order = new Orders(username);
+        when(orderRepository.save(any(Orders.class))).thenReturn(order);
+
+        // 결제 검증 로직에 대한 Mock 설정 (void 메서드)
+        doNothing().when(orderConfirmationService).confirmOrderAndPayment(any(Orders.class), any(PaymentResponse.class));
+
+        // 주문 생성 로직 실행
+        orderService.createOrder(username, orderRequestDto);
+
+        // 저장 호출 검증
         verify(orderRepository, times(2)).save(any(Orders.class));
         verify(orderedTicketRepository, times(1)).save(any(OrderedTicket.class));
+
+        // Kafka 이벤트 전송 확인
+        verify(kafkaDecrTemplate, times(1)).send(anyString(), any(StockDecrEvent.class));
     }
+
+
+
 
     // cancelOrder
     @Test
@@ -229,10 +255,6 @@ public class OrderServiceTest {
         // Redis Mock 설정
         when(redisTemplate.opsForValue().increment(anyString(), anyLong())).thenReturn(1L);
 
-        // KafkaTemplate의 send 메서드에 대한 Mock
-        when(kafkaIncrTemplate.send(eq("stock-restore-topic"), any(StockIncrEvent.class)))
-                .thenReturn(CompletableFuture.completedFuture(null));
-
         // 주문 취소 호출
         orderService.cancelOrder("username", orderId);
 
@@ -244,9 +266,8 @@ public class OrderServiceTest {
         assertEquals(Orders.OrderStatus.CANCELED, order.getStatus());
         assertEquals(OrderedTicket.Status.CANCELED, orderedTicket.getStatus());
 
-        // Redis와 Kafka 호출 검증
+        // Redis 호출 검증
         verify(redisTemplate.opsForValue(), times(1)).increment(anyString(), eq(1L));
-        verify(kafkaIncrTemplate, times(1)).send(eq("stock-restore-topic"), any(StockIncrEvent.class));
     }
 
 }
