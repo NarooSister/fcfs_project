@@ -24,6 +24,16 @@ public class Payment {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    public Payment(Long orderId, int amount, PaymentStatus paymentStatus) {
+        this.orderId = orderId;
+        this.amount = amount;
+        this.status = paymentStatus;
+    }
+
+    public Payment() {
+
+    }
+
     public enum PaymentStatus {
         PENDING,        // 결제 대기
         PROCESSING,     // 결제 중

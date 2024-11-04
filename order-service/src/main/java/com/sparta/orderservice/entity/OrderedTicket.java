@@ -50,9 +50,10 @@ public class OrderedTicket {
     }
 
     public enum Status {
-        PENDING,   // 주문 처리 중
+        PENDING,    // 주문 처리 중
+        CONFIRMED,  // 주문 확정
         CANCELED,   // 취소 완료
-        COMPLETED    // 관람 완료
+        COMPLETED   // 관람 완료
     }
 
     // 정적 팩토리 메서드
@@ -66,10 +67,25 @@ public class OrderedTicket {
         return orderedTicket;
     }
 
-    public void cancel() {
+    public void confirm() {
         if (this.status != Status.PENDING) {
+            throw new OrderBusinessException(OrderServiceErrorCode.CANNOT_CONFIRM_ORDER);
+        }
+        this.status = Status.CONFIRMED;
+    }
+
+    public void cancel() {
+        if (this.status == Status.PENDING || this.status == Status.CONFIRMED) {
+            this.status = Status.CANCELED;
+        } else {
             throw new OrderBusinessException(OrderServiceErrorCode.CANNOT_CANCEL_ORDER);
         }
-        this.status = Status.CANCELED;
+    }
+
+    public void complete() {
+        if (this.status != Status.CONFIRMED) {
+            throw new OrderBusinessException(OrderServiceErrorCode.CANNOT_COMPLETE_ORDER);
+        }
+        this.status = Status.COMPLETED;
     }
 }

@@ -58,7 +58,7 @@ public class OrderServiceTest {
         when(orderRepository.findAllByUsername("username")).thenReturn(Collections.emptyList());
 
         OrderBusinessException exception = assertThrows(OrderBusinessException.class, () -> {
-            orderService.readAllOrders("username");
+            orderService.readAllOrdersByUser("username");
         });
 
         assertEquals(OrderServiceErrorCode.ALL_ORDER_NOT_FOUND, exception.getErrorCode());
@@ -70,7 +70,7 @@ public class OrderServiceTest {
         Orders order = new Orders("username");
         when(orderRepository.findAllByUsername("username")).thenReturn(List.of(order));
 
-        List<OrderDto> result = orderService.readAllOrders("username");
+        List<OrderDto> result = orderService.readAllOrdersByUser("username");
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -85,7 +85,7 @@ public class OrderServiceTest {
         when(orderRepository.findByIdAndUsername(orderId, "username")).thenReturn(Optional.empty());
 
         OrderBusinessException exception = assertThrows(OrderBusinessException.class, () -> {
-            orderService.readOrder("username", orderId);
+            orderService.readOrderByUser("username", orderId);
         });
 
         assertEquals(OrderServiceErrorCode.ORDER_NOT_FOUND, exception.getErrorCode());
@@ -99,7 +99,7 @@ public class OrderServiceTest {
         Orders order = new Orders("username");
         when(orderRepository.findByIdAndUsername(orderId, "username")).thenReturn(Optional.of(order));
 
-        OrderDto result = orderService.readOrder("username", orderId);
+        OrderDto result = orderService.readOrderByUser("username", orderId);
 
         assertNotNull(result);
         verify(orderRepository, times(1)).findByIdAndUsername(orderId, "username");
@@ -114,7 +114,6 @@ public class OrderServiceTest {
         orderRequestDto.setOrderedTickets(List.of(new OrderedTicketDto(ticketId, 1)));
 
         when(ticketClient.getTicketById(ticketId)).thenReturn(null); // Feign Client Mock
-
         OrderBusinessException exception = assertThrows(OrderBusinessException.class, () -> {
             orderService.createOrder("username", orderRequestDto);
         });

@@ -1,6 +1,5 @@
 package com.sparta.orderservice.unit_test;
 
-import com.sparta.orderservice.dto.OrderedTicketDto;
 import com.sparta.orderservice.dto.TicketDto;
 import com.sparta.orderservice.entity.OrderedTicket;
 import com.sparta.orderservice.service.RefundService;

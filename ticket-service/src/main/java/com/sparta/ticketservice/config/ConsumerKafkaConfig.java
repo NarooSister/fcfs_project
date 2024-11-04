@@ -29,7 +29,7 @@ public class ConsumerKafkaConfig {
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
 
         JsonDeserializer<StockDecrEvent> jsonDeserializer = new JsonDeserializer<>(StockDecrEvent.class);
-        jsonDeserializer.addTrustedPackages("com.sparta.ticketservice.event");
+        jsonDeserializer.addTrustedPackages("*");
 
         return new DefaultKafkaConsumerFactory<>(configProps, new StringDeserializer(), jsonDeserializer);
     }
@@ -51,7 +51,7 @@ public class ConsumerKafkaConfig {
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
 
         JsonDeserializer<StockIncrEvent> jsonDeserializer = new JsonDeserializer<>(StockIncrEvent.class);
-        jsonDeserializer.addTrustedPackages("com.sparta.ticketservice.event");
+        jsonDeserializer.addTrustedPackages("*");
 
         return new DefaultKafkaConsumerFactory<>(configProps, new StringDeserializer(), jsonDeserializer);
     }

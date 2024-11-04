@@ -12,7 +12,12 @@ public enum OrderServiceErrorCode {
     CANNOT_CANCEL_ORDER(HttpStatus.BAD_REQUEST, "O-005", "주문을 취소할 수 없습니다."),
     TICKET_NOT_FOUND(HttpStatus.NOT_FOUND, "O-006", "티켓을 찾을 수 없습니다."),
     CART_NOT_FOUND(HttpStatus.NOT_FOUND, "O-007", "장바구니에 담긴 상품이 없습니다."),
-    CART_NOT_FOUND_TICKET(HttpStatus.NOT_FOUND, "O-008", "해당하는 티켓을 찾을 수 없습니다.");
+    CART_NOT_FOUND_TICKET(HttpStatus.NOT_FOUND, "O-008", "해당하는 티켓을 찾을 수 없습니다."),
+    CANNOT_COMPLETE_ORDER(HttpStatus.NOT_FOUND, "O-009", "주문 확정된 티켓이 아닙니다."),
+    INVALID_TICKET(HttpStatus.NOT_FOUND, "O-010", "유효하지 않은 티켓입니다."),
+    CANNOT_CONFIRM_ORDER(HttpStatus.NOT_FOUND, "O-011", "주문 대기 중인 티켓이 아닙니다."),
+    PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "O-012", "결제가 실패하였습니다.");
+
 
 
     private final HttpStatus httpStatus;

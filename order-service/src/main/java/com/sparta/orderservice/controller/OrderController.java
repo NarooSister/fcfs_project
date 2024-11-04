@@ -19,13 +19,13 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderDto>> readAllOrders(UserInfo userInfo){
-        List<OrderDto> orderList = orderService.readAllOrders(userInfo.username());
+    public ResponseEntity<List<OrderDto>> readAllOrdersByUser(UserInfo userInfo){
+        List<OrderDto> orderList = orderService.readAllOrdersByUser(userInfo.username());
         return ResponseEntity.ok(orderList);
     }
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderDto> readOrder(@PathVariable("orderId") Long orderId, UserInfo userInfo){
-        OrderDto order = orderService.readOrder(userInfo.username(), orderId);
+    public ResponseEntity<OrderDto> readOrderByUser(@PathVariable("orderId") Long orderId, UserInfo userInfo){
+        OrderDto order = orderService.readOrderByUser(userInfo.username(), orderId);
         return ResponseEntity.ok(order);
     }
 

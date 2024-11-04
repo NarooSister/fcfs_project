@@ -1,5 +1,7 @@
 package com.sparta.orderservice.entity;
 
+import com.sparta.orderservice.exception.OrderBusinessException;
+import com.sparta.orderservice.exception.OrderServiceErrorCode;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,12 +18,15 @@ import java.time.LocalDateTime;
 @Table(name = "orders", indexes = {
         @Index(name = "idx_user_username", columnList = "username")
 })
-public class Orders{
+public class Orders {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String username;
     private Integer totalPrice = 0;
+
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -31,9 +36,30 @@ public class Orders{
 
     public Orders(String username) {
         this.username = username;
+        this.status = OrderStatus.PENDING;
+    }
+
+    public void confirmOrder() {
+        if (this.status != OrderStatus.PENDING) {
+            throw new OrderBusinessException(OrderServiceErrorCode.CANNOT_CONFIRM_ORDER);
+        }
+        this.status = OrderStatus.CONFIRMED;
+    }
+
+    public void cancelOrder() {
+        if (this.status != OrderStatus.CONFIRMED) {
+            throw new OrderBusinessException(OrderServiceErrorCode.CANNOT_CANCEL_ORDER);
+        }
+        this.status = OrderStatus.CANCELED;
     }
 
     public void updateTotalPrice(int amount) {
         this.totalPrice += amount;
+    }
+
+    public enum OrderStatus {
+        PENDING,
+        CONFIRMED,
+        CANCELED
     }
 }
