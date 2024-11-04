@@ -7,6 +7,8 @@ import com.sparta.orderservice.dto.OrderedTicketDto;
 import com.sparta.orderservice.dto.TicketDto;
 import com.sparta.orderservice.entity.OrderedTicket;
 import com.sparta.orderservice.entity.Orders;
+import com.sparta.orderservice.event.StockDecrEvent;
+import com.sparta.orderservice.event.StockIncrEvent;
 import com.sparta.orderservice.exception.OrderBusinessException;
 import com.sparta.orderservice.exception.OrderServiceErrorCode;
 import com.sparta.orderservice.repository.OrderRepository;
@@ -21,11 +23,16 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.util.concurrent.SettableListenableFuture;
 
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -41,14 +48,29 @@ public class OrderServiceTest {
 
     @Mock
     private TicketClient ticketClient;
+
     @Mock
     private RefundService refundService;
+
     @InjectMocks
     private OrderService orderService;
+
+    @Mock
+    private RedisTemplate<String, Integer> redisTemplate;
+
+    @Mock
+    private ValueOperations<String, Integer> valueOperations;
+
+    @Mock
+    private KafkaTemplate<String, StockDecrEvent> kafkaDecrTemplate;
+
+    @Mock
+    private KafkaTemplate<String, StockIncrEvent> kafkaIncrTemplate;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
     // readAllOrders
@@ -118,7 +140,7 @@ public class OrderServiceTest {
             orderService.createOrder("username", orderRequestDto);
         });
 
-        assertEquals(OrderServiceErrorCode.TICKET_NOT_FOUND, exception.getErrorCode());
+        assertEquals(OrderServiceErrorCode.INVALID_TICKET, exception.getErrorCode());
     }
 
     @Test
@@ -136,7 +158,7 @@ public class OrderServiceTest {
             orderService.createOrder("username", orderRequestDto);
         });
 
-        assertEquals(OrderServiceErrorCode.TICKET_NOT_ON_SALE, exception.getErrorCode());
+        assertEquals(OrderServiceErrorCode.INVALID_TICKET, exception.getErrorCode());
     }
 
     @Test
@@ -154,7 +176,7 @@ public class OrderServiceTest {
             orderService.createOrder("username", orderRequestDto);
         });
 
-        assertEquals(OrderServiceErrorCode.INSUFFICIENT_STOCK, exception.getErrorCode());
+        assertEquals(OrderServiceErrorCode.INVALID_TICKET, exception.getErrorCode());
     }
 
     @Test
@@ -191,8 +213,10 @@ public class OrderServiceTest {
     @Test
     @DisplayName("유효한 주문 ID로 취소 시 정상적으로 취소 처리되는지 확인")
     void cancelOrder_ValidOrder_CancelsOrderSuccessfully() {
+        // Mock 설정
         Long orderId = 1L;
         Orders order = new Orders("username");
+        order.confirmOrder();
         when(orderRepository.findByIdAndUsername(orderId, "username")).thenReturn(Optional.of(order));
 
         Long ticketId = 1L;
@@ -202,10 +226,27 @@ public class OrderServiceTest {
         OrderedTicket orderedTicket = OrderedTicket.createPending(orderId, ticketId, 1, 100);
         when(orderedTicketRepository.findByOrderId(orderId)).thenReturn(List.of(orderedTicket));
 
+        // Redis Mock 설정
+        when(redisTemplate.opsForValue().increment(anyString(), anyLong())).thenReturn(1L);
+
+        // KafkaTemplate의 send 메서드에 대한 Mock
+        when(kafkaIncrTemplate.send(eq("stock-restore-topic"), any(StockIncrEvent.class)))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        // 주문 취소 호출
         orderService.cancelOrder("username", orderId);
 
+        // 검증
         verify(orderRepository, times(1)).save(order);
+        verify(orderedTicketRepository, times(1)).saveAll(anyList());
+
+        // 상태 확인
+        assertEquals(Orders.OrderStatus.CANCELED, order.getStatus());
         assertEquals(OrderedTicket.Status.CANCELED, orderedTicket.getStatus());
+
+        // Redis와 Kafka 호출 검증
+        verify(redisTemplate.opsForValue(), times(1)).increment(anyString(), eq(1L));
+        verify(kafkaIncrTemplate, times(1)).send(eq("stock-restore-topic"), any(StockIncrEvent.class));
     }
 
 }
