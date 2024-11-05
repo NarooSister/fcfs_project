@@ -67,26 +67,24 @@ public class OrderService {
     }
 
     public void createOrder(String username, OrderRequestDto orderRequestDto) {
-        // 주문 생성
+        // 재고 확인 및 차감
+        validateAndReduceStock(orderRequestDto);
+
+        // 주문 생성 및 저장
         Orders order = new Orders(username);
         orderRepository.save(order);
 
-        // 주문 항목 및 총 금액 계산
+        // 티켓 검증, OrderTicket 생성 및 저장, 차감 감소 이벤트 처리 후 최종 금액 계산하기
         int totalPrice = processOrderItems(order, orderRequestDto.getOrderedTickets());
-
-        // 재고 확인 및 차감
-        validateAndReduceStock(orderRequestDto);
 
         // 주문 최종 금액 업데이트
         order.updateTotalPrice(totalPrice);
         orderRepository.save(order);
 
-        // 재고 차감 이벤트 전송
-        sendStockDecrementEvent(order);
-
         try {
             // 임의의 paymentKey 생성
             String paymentKey = UUID.randomUUID().toString();
+            // 결제 모듈 가정하여 시뮬레이션
             PaymentResponse paymentResponse = simulatePaymentVerification(paymentKey);
             // 결제와 주문 확정 로직(트랜잭션 설정)
             orderConfirmationService.confirmOrderAndPayment(order, paymentResponse);
@@ -141,6 +139,10 @@ public class OrderService {
                     validateTicket(ticket, orderedTicketDto.getQuantity());
 
                     OrderedTicket orderedTicket = createAndSaveOrderedTicket(order.getId(), ticket, orderedTicketDto.getQuantity());
+
+                    // 각 티켓에 대해 재고 차감 이벤트 전송
+                    sendStockDecrementEvent(order.getId(), orderedTicket);
+
                     return orderedTicket.getPrice();
                 })
                 .sum();
@@ -163,9 +165,13 @@ public class OrderService {
         return orderedTicket;
     }
 
-    private void sendStockDecrementEvent(Orders order) {
-        StockDecrEvent orderEvent = new StockDecrEvent(order.getId(), order.getUsername(), order.getTotalPrice());
-        kafkaDecrTemplate.send(STOCK_DECREMENT_TOPIC, orderEvent); // 주문 생성 이벤트를 Kafka로 전송
+    private void sendStockDecrementEvent(Long orderId, OrderedTicket orderedTicket) {
+        StockDecrEvent stockDecrEvent = new StockDecrEvent(
+                orderId,
+                orderedTicket.getTicketId(),
+                orderedTicket.getQuantity()
+        );
+        kafkaDecrTemplate.send(STOCK_DECREMENT_TOPIC, stockDecrEvent);
     }
 
     //==================================================================================

@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class StockDecrEvent {
     private Long orderId;
-    private String username;
-    private Integer totalPrice;
+    private Long ticketId;
+    private Integer quantity;
 }
