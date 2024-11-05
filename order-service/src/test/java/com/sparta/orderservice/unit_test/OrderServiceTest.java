@@ -219,9 +219,6 @@ public class OrderServiceTest {
         verify(kafkaDecrTemplate, times(1)).send(anyString(), any(StockDecrEvent.class));
     }
 
-
-
-
     // cancelOrder
     @Test
     @DisplayName("주문이 존재하지 않을 경우 예외 발생")
@@ -269,6 +266,5 @@ public class OrderServiceTest {
         // Redis 호출 검증
         verify(redisTemplate.opsForValue(), times(1)).increment(anyString(), eq(1L));
     }
-
 }
 

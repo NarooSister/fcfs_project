@@ -16,6 +16,7 @@ import com.sparta.orderservice.repository.OrderRepository;
 import com.sparta.orderservice.repository.OrderedTicketRepository;
 
 import com.sparta.orderservice.toss.PaymentResponse;
+import jakarta.transaction.Transactional;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -167,10 +168,9 @@ public class OrderService {
         kafkaDecrTemplate.send(STOCK_DECREMENT_TOPIC, orderEvent); // 주문 생성 이벤트를 Kafka로 전송
     }
 
-
     //==================================================================================
-
     // 주문 취소 로직
+    @Transactional
     public void cancelOrder(String username, Long orderId) {
         Orders order = orderRepository.findByIdAndUsername(orderId, username)
                 .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
@@ -179,7 +179,12 @@ public class OrderService {
         orderRepository.save(order);
 
         List<OrderedTicket> orderedTickets = orderedTicketRepository.findByOrderId(orderId);
-        cancelOrderedTicketsAndRestoreStock(orderedTickets);
+        orderedTickets.forEach(orderedTicket -> {
+            orderedTicket.cancel();
+            restoreStockInRedis(orderedTicket);
+            sendStockRestoreEvent(orderedTicket);
+        });
+        orderedTicketRepository.saveAll(orderedTickets);
     }
 
     private void restoreStockInRedis(OrderedTicket orderedTicket) {
@@ -199,9 +204,5 @@ public class OrderService {
     public PaymentResponse simulatePaymentVerification(String paymentKey) {
         // 결제 상태를 성공으로 시뮬레이션
         return new PaymentResponse(paymentKey, 10000, "COMPLETED"); // 예시 금액과 상태 설정
-    }
-
-    private void processRefund(double refundAmount) {
-        // TODO : 환불 로직
     }
 }
