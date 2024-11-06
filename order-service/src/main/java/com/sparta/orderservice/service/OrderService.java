@@ -2,10 +2,7 @@ package com.sparta.orderservice.service;
 
 
 import com.sparta.orderservice.client.TicketClient;
-import com.sparta.orderservice.dto.OrderDto;
-import com.sparta.orderservice.dto.OrderRequestDto;
-import com.sparta.orderservice.dto.OrderedTicketDto;
-import com.sparta.orderservice.dto.TicketDto;
+import com.sparta.orderservice.dto.*;
 import com.sparta.orderservice.entity.OrderedTicket;
 import com.sparta.orderservice.entity.Orders;
 import com.sparta.orderservice.event.StockDecrEvent;
@@ -15,39 +12,37 @@ import com.sparta.orderservice.exception.OrderServiceErrorCode;
 import com.sparta.orderservice.repository.OrderRepository;
 import com.sparta.orderservice.repository.OrderedTicketRepository;
 
+import com.sparta.orderservice.repository.PendingOrderRepository;
 import com.sparta.orderservice.toss.PaymentResponse;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
+@RequiredArgsConstructor
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderConfirmationService orderConfirmationService;
     private final OrderedTicketRepository orderedTicketRepository;
+    private final PendingOrderRepository pendingOrderRepository;
     private final TicketClient ticketClient;
     private final RefundService refundService;
     private final KafkaTemplate<String, StockDecrEvent> kafkaDecrTemplate;
     private final KafkaTemplate<String, StockIncrEvent> kafkaIncrTemplate;
     private final RedisTemplate<String, Integer> redisTemplate;
+    private final RedisTemplate<String, Object> pendingOrderRedisTemplate;
+
     private static final String STOCK_DECREMENT_TOPIC = "stock-decrement-topic";
     private static final String STOCK_RESTORE_TOPIC = "stock-restore-topic";
 
-    public OrderService(OrderRepository orderRepository, OrderConfirmationService orderConfirmationService, OrderedTicketRepository orderedTicketRepository, RefundService refundService, TicketClient ticketClient, KafkaTemplate<String, StockDecrEvent> kafkaDecrTemplate, KafkaTemplate<String, StockIncrEvent> kafkaIncrTemplate, RedisTemplate<String, Integer> redisTemplate) {
-        this.orderRepository = orderRepository;
-        this.orderConfirmationService = orderConfirmationService;
-        this.orderedTicketRepository = orderedTicketRepository;
-        this.refundService = refundService;
-        this.ticketClient = ticketClient;
-        this.kafkaDecrTemplate = kafkaDecrTemplate;
-        this.kafkaIncrTemplate = kafkaIncrTemplate;
-        this.redisTemplate = redisTemplate;
-    }
 
     // 사용자의 모든 주문 가져오기
     public List<OrderDto> readAllOrdersByUser(String username) {
@@ -64,6 +59,23 @@ public class OrderService {
         return orderRepository.findByIdAndUsername(orderId, username)
                 .map(OrderDto::new)
                 .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
+    }
+
+    public String createPendingOrder(String username, OrderRequestDto orderRequestDto) {
+        String pendingOrderId = "pending_order:" + UUID.randomUUID();
+        for (OrderedTicketDto orderedTicket : orderRequestDto.getOrderedTickets()) {
+            PendingOrder pendingOrder = PendingOrder.builder()
+                    .username(username)
+                    .ticketId(orderedTicket.getTicketId())
+                    .quantity(orderedTicket.getQuantity())
+                    .createdAt(LocalDateTime.now())
+                    .status(PendingOrder.PendingStatus.PENDING)
+                    .build();
+
+            pendingOrderRepository.savePendingOrder(pendingOrderId, pendingOrder);
+        }
+
+        return pendingOrderId; // 예비 주문 ID 반환
     }
 
     public void createOrder(String username, OrderRequestDto orderRequestDto) {

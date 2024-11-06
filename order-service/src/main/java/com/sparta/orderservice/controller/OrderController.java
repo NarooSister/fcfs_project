@@ -29,7 +29,13 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
-    @PostMapping
+    @PostMapping("/pending")
+    public ResponseEntity<String> createPendingOrder(@RequestBody OrderRequestDto orderRequestDto, UserInfo userInfo){
+        String pendingOrderId = orderService.createPendingOrder(userInfo.username(), orderRequestDto);
+        return ResponseEntity.ok("예비 주문이 생성되었습니다. 예비 주문 ID: " + pendingOrderId);
+    }
+
+    @PostMapping("/complete")
     public ResponseEntity<String> createOrder(@RequestBody OrderRequestDto orderRequestDto, UserInfo userInfo){
         orderService.createOrder(userInfo.username(), orderRequestDto);
         return ResponseEntity.ok("티켓 주문이 완료되었습니다.");

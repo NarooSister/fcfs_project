@@ -1,6 +1,7 @@
 package com.sparta.orderservice.config;
 
 import com.sparta.orderservice.dto.CartItem;
+import com.sparta.orderservice.dto.PendingOrder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -35,6 +36,10 @@ public class RedisConfig {
 
     @Bean
     public HashOperations<String, String, CartItem> hashOperations(RedisTemplate<String, Object> redisTemplate) {
+        return redisTemplate.opsForHash();
+    }
+    @Bean
+    public HashOperations<String, String, String> pendingOrderHashOperations(RedisTemplate<String, Object> redisTemplate) {
         return redisTemplate.opsForHash();
     }
 }
