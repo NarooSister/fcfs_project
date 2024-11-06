@@ -5,6 +5,7 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @Repository
@@ -38,8 +39,8 @@ public class PendingOrderRepository {
 
         // 해시 필드를 읽어와 객체로 생성
         String username = hashOperations.get(key, "username");
-        Long ticketId = Long.valueOf(hashOperations.get(key, "ticketId"));
-        Integer quantity = Integer.valueOf(hashOperations.get(key, "quantity"));
+        Long ticketId = Long.valueOf(Objects.requireNonNull(hashOperations.get(key, "ticketId")));
+        Integer quantity = Integer.valueOf(Objects.requireNonNull(hashOperations.get(key, "quantity")));
         PendingOrder.PendingStatus status = PendingOrder.PendingStatus.valueOf(hashOperations.get(key, "status"));
 
         return PendingOrder.builder()

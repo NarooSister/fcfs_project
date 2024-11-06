@@ -7,6 +7,7 @@ import com.sparta.orderservice.service.OrderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -29,15 +30,15 @@ public class OrderController {
         return ResponseEntity.ok(order);
     }
 
-    @PostMapping("/pending")
-    public ResponseEntity<String> createPendingOrder(@RequestBody OrderRequestDto orderRequestDto, UserInfo userInfo){
-        String pendingOrderId = orderService.createPendingOrder(userInfo.username(), orderRequestDto);
-        return ResponseEntity.ok("예비 주문이 생성되었습니다. 예비 주문 ID: " + pendingOrderId);
+    @PostMapping("/reserve")
+    public ResponseEntity<List<String>> createPendingOrder(@RequestBody OrderRequestDto orderRequestDto, UserInfo userInfo){
+        List<String> pendingOrderIds = orderService.createPendingOrder(userInfo.username(), orderRequestDto);
+        return ResponseEntity.ok(pendingOrderIds); // 예비 주문 ID 목록 반환
     }
 
     @PostMapping("/complete")
-    public ResponseEntity<String> createOrder(@RequestBody OrderRequestDto orderRequestDto, UserInfo userInfo){
-        orderService.createOrder(userInfo.username(), orderRequestDto);
+    public ResponseEntity<String> attemptPayment(@RequestBody List<String> pendingOrderIds, UserInfo userInfo){
+        orderService.attemptPayment(userInfo.username(), pendingOrderIds);
         return ResponseEntity.ok("티켓 주문이 완료되었습니다.");
     }
 

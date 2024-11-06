@@ -34,6 +34,12 @@ public class Orders {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    public Orders(String username, Integer totalPrice, OrderStatus status) {
+        this.username = username;
+        this.totalPrice = totalPrice;
+        this.status = status;
+    }
+
     public Orders(String username) {
         this.username = username;
         this.status = OrderStatus.PENDING;

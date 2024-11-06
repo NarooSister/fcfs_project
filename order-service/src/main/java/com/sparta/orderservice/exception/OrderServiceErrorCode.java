@@ -16,7 +16,10 @@ public enum OrderServiceErrorCode {
     CANNOT_COMPLETE_ORDER(HttpStatus.NOT_FOUND, "O-009", "주문 확정된 티켓이 아닙니다."),
     INVALID_TICKET(HttpStatus.NOT_FOUND, "O-010", "유효하지 않은 티켓입니다."),
     CANNOT_CONFIRM_ORDER(HttpStatus.NOT_FOUND, "O-011", "주문 대기 중인 티켓이 아닙니다."),
-    PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "O-012", "결제가 실패하였습니다.");
+    PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "O-012", "결제가 실패하였습니다."),
+    INVALID_PENDING_ORDER_STATUS(HttpStatus.NOT_FOUND, "O-013", "PendingOrder가 유효하지 않습니다."),
+    INVALID_PENDING_STOCK(HttpStatus.NOT_FOUND, "O-014", "예약된 재고가 없습니다.");
+
 
 
 

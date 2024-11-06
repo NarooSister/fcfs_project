@@ -21,6 +21,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -61,9 +62,27 @@ public class OrderService {
                 .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
     }
 
-    public String createPendingOrder(String username, OrderRequestDto orderRequestDto) {
-        String pendingOrderId = "pending_order:" + UUID.randomUUID();
+
+    //========================== 결제 화면 진입 ==========================================
+
+    public List<String> createPendingOrder(String username, OrderRequestDto orderRequestDto) {
+        List<String> pendingOrderIds = new ArrayList<>();
+
         for (OrderedTicketDto orderedTicket : orderRequestDto.getOrderedTickets()) {
+            String uuid = "" + UUID.randomUUID();
+
+            String stockKey = "stock:" + orderedTicket.getTicketId();   // 전체 재고
+            String reservedStockKey = "reserved_stock:" + orderedTicket.getTicketId();  // 예약 재고
+
+            Integer totalStock = redisTemplate.opsForValue().get(stockKey);
+            Integer reservedStock = redisTemplate.opsForValue().get(reservedStockKey);
+
+            int availableStock = (totalStock != null ? totalStock : 0) - (reservedStock != null ? reservedStock : 0);
+
+            if (availableStock < orderedTicket.getQuantity()) {
+                throw new OrderBusinessException(OrderServiceErrorCode.INSUFFICIENT_STOCK);
+            }
+
             PendingOrder pendingOrder = PendingOrder.builder()
                     .username(username)
                     .ticketId(orderedTicket.getTicketId())
@@ -72,119 +91,64 @@ public class OrderService {
                     .status(PendingOrder.PendingStatus.PENDING)
                     .build();
 
-            pendingOrderRepository.savePendingOrder(pendingOrderId, pendingOrder);
-        }
+            pendingOrderRepository.savePendingOrder(uuid, pendingOrder);
 
-        return pendingOrderId; // 예비 주문 ID 반환
+            createReservation(uuid, username, orderedTicket.getQuantity());
+            pendingOrderIds.add(uuid);
+        }
+        return pendingOrderIds; // 예비 주문 ID 반환
     }
 
-    public void createOrder(String username, OrderRequestDto orderRequestDto) {
-        // 재고 확인 및 차감
-        validateAndReduceStock(orderRequestDto);
+    public void createReservation(String id, String username, int quantity) {
+        String reservedStockKey = "reserved_stock:" + id + ":" + username;
 
-        // 주문 생성 및 저장
-        Orders order = new Orders(username);
-        orderRepository.save(order);
+        redisTemplate.opsForValue().set(reservedStockKey, quantity);
+        redisTemplate.expire(reservedStockKey, 10, TimeUnit.MINUTES);
+    }
 
-        // 티켓 검증, OrderTicket 생성 및 저장, 차감 감소 이벤트 처리 후 최종 금액 계산하기
-        int totalPrice = processOrderItems(order, orderRequestDto.getOrderedTickets());
+    // ========================= 결제 시도 (결제화면에서 결제하기 버튼 누름) ================================
 
-        // 주문 최종 금액 업데이트
-        order.updateTotalPrice(totalPrice);
-        orderRepository.save(order);
+    public void attemptPayment(String username, List<String> pendingOrderIds) {
+        List<PendingOrder> pendingOrders = new ArrayList<>();
+        List<String> reservedStockKeys = new ArrayList<>();
 
+        for (String pendingOrderId : pendingOrderIds) {
+            PendingOrder pendingOrder = pendingOrderRepository.getPendingOrder(pendingOrderId);
+            if (pendingOrder == null || pendingOrder.getStatus() != PendingOrder.PendingStatus.PENDING) {
+                throw new OrderBusinessException(OrderServiceErrorCode.INVALID_PENDING_ORDER_STATUS);
+            }
+
+            // 예약된 재고 확인
+            String reservedStockKey = "reserved_stock:" + pendingOrderId + ":" + username;
+            if (redisTemplate.opsForValue().get(reservedStockKey) == null) {
+                throw new OrderBusinessException(OrderServiceErrorCode.INVALID_PENDING_STOCK);
+            }
+
+            pendingOrders.add(pendingOrder);
+            reservedStockKeys.add(reservedStockKey);
+        }
         try {
-            // 임의의 paymentKey 생성
-            String paymentKey = UUID.randomUUID().toString();
             // 결제 모듈 가정하여 시뮬레이션
+            String paymentKey = UUID.randomUUID().toString();
             PaymentResponse paymentResponse = simulatePaymentVerification(paymentKey);
+
             // 결제와 주문 확정 로직(트랜잭션 설정)
-            orderConfirmationService.confirmOrderAndPayment(order, paymentResponse);
+            orderConfirmationService.confirmOrderAndPayment(paymentResponse, pendingOrders);
+
         } catch (Exception e) {
-            // 결제 실패 시 주문 취소 및 재고 복구 처리
-            processOrderCancellation(order.getId());
+            // 결제 실패 시 Pending 테이블 삭제, 예약키 삭제
+            pendingOrderIds.forEach(pendingOrderRepository::deletePendingOrder);
+            reservedStockKeys.forEach(redisTemplate::delete);
             throw new OrderBusinessException(OrderServiceErrorCode.PAYMENT_FAILED);
         }
     }
 
-    private void processOrderCancellation(Long orderId) {
-        Orders order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
-
-        order.cancelOrder();
-        orderRepository.save(order);
-
-        List<OrderedTicket> orderedTickets = orderedTicketRepository.findByOrderId(orderId);
-        cancelOrderedTicketsAndRestoreStock(orderedTickets);
+    // 결제 검증 시뮬레이션 메서드
+    public PaymentResponse simulatePaymentVerification(String paymentKey) {
+        // 결제 상태를 성공으로 시뮬레이션
+        return new PaymentResponse(paymentKey, 10000, "COMPLETED"); // 예시 금액과 상태 설정
     }
 
-    private void cancelOrderedTicketsAndRestoreStock(List<OrderedTicket> orderedTickets) {
-        orderedTickets.forEach(orderedTicket -> {
-            orderedTicket.cancel();
-            restoreStockInRedis(orderedTicket);
-            sendStockRestoreEvent(orderedTicket);
-        });
-        orderedTicketRepository.saveAll(orderedTickets);
-    }
-
-    private void validateAndReduceStock(OrderRequestDto orderRequestDto) {
-        for (OrderedTicketDto orderedTicketDto : orderRequestDto.getOrderedTickets()) {
-            String stockKey = generateStockKey(orderedTicketDto.getTicketId());
-            Integer stock = redisTemplate.opsForValue().get(stockKey);
-
-            if (stock == null || stock < orderedTicketDto.getQuantity()) {
-                throw new OrderBusinessException(OrderServiceErrorCode.INSUFFICIENT_STOCK);
-            }
-
-            redisTemplate.opsForValue().decrement(stockKey, orderedTicketDto.getQuantity());
-        }
-    }
-
-    private String generateStockKey(Long ticketId) {
-        return "stock:" + ticketId;
-    }
-
-    private int processOrderItems(Orders order, List<OrderedTicketDto> orderedTickets) {
-        return orderedTickets.stream()
-                .mapToInt(orderedTicketDto -> {
-                    TicketDto ticket = fetchTicketDetails(orderedTicketDto.getTicketId());
-                    validateTicket(ticket, orderedTicketDto.getQuantity());
-
-                    OrderedTicket orderedTicket = createAndSaveOrderedTicket(order.getId(), ticket, orderedTicketDto.getQuantity());
-
-                    // 각 티켓에 대해 재고 차감 이벤트 전송
-                    sendStockDecrementEvent(order.getId(), orderedTicket);
-
-                    return orderedTicket.getPrice();
-                })
-                .sum();
-    }
-
-    // Open Feign으로 티켓에서 정보 가져옴
-    private TicketDto fetchTicketDetails(Long ticketId) {
-        return ticketClient.getTicketById(ticketId);
-    }
-
-    private void validateTicket(TicketDto ticket, int requestedQuantity) {
-        if (ticket == null || !"ON_SALE".equals(ticket.status()) || ticket.stock() < requestedQuantity) {
-            throw new OrderBusinessException(OrderServiceErrorCode.INVALID_TICKET);
-        }
-    }
-
-    private OrderedTicket createAndSaveOrderedTicket(Long orderId, TicketDto ticket, int quantity) {
-        OrderedTicket orderedTicket = OrderedTicket.createPending(orderId, ticket.id(), quantity, ticket.price() * quantity);
-        orderedTicketRepository.save(orderedTicket);
-        return orderedTicket;
-    }
-
-    private void sendStockDecrementEvent(Long orderId, OrderedTicket orderedTicket) {
-        StockDecrEvent stockDecrEvent = new StockDecrEvent(
-                orderId,
-                orderedTicket.getTicketId(),
-                orderedTicket.getQuantity()
-        );
-        kafkaDecrTemplate.send(STOCK_DECREMENT_TOPIC, stockDecrEvent);
-    }
 
     //==================================================================================
     // 주문 취소 로직
@@ -218,9 +182,7 @@ public class OrderService {
         kafkaIncrTemplate.send(STOCK_RESTORE_TOPIC, stockRestoreEvent); // 재고 복구 이벤트를 Kafka로 전송
     }
 
-    // 결제 검증 시뮬레이션 메서드
-    public PaymentResponse simulatePaymentVerification(String paymentKey) {
-        // 결제 상태를 성공으로 시뮬레이션
-        return new PaymentResponse(paymentKey, 10000, "COMPLETED"); // 예시 금액과 상태 설정
+    private String generateStockKey(Long ticketId) {
+        return "stock:" + ticketId;
     }
 }
