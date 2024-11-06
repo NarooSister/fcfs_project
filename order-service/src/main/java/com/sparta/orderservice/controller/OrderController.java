@@ -29,6 +29,11 @@ public class OrderController {
         OrderDto order = orderService.readOrderByUser(userInfo.username(), orderId);
         return ResponseEntity.ok(order);
     }
+    @GetMapping("/{ticketId}/stock")
+    public ResponseEntity<String> getCurrentStock(@PathVariable("ticketId") Long ticketId){
+        int stock = orderService.getCurrentStock(ticketId);
+        return ResponseEntity.ok("현재 재고 : "+ stock);
+    }
 
     @PostMapping("/reserve")
     public ResponseEntity<List<String>> createPendingOrder(@RequestBody OrderRequestDto orderRequestDto, UserInfo userInfo){

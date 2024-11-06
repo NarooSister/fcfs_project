@@ -237,4 +237,31 @@ public class OrderService {
         // 실제 환불 처리 로직 구현 예시
         log.info("Ticket ID: {}, 환불 금액: {}", orderedTicket.getId(), refundAmount);
     }
+
+    //========================재고 확인 api==========================
+
+    // 현재 사용 가능한 재고 조회 (모든 예약 재고 제외)
+    public int getCurrentStock(Long ticketId) {
+        String stockKey = generateStockKey(ticketId);
+        Integer totalStock = redisTemplate.opsForValue().get(stockKey);
+
+        int totalReservedStock = getTotalReservedStock(ticketId);
+
+        // 현재 재고에서 모든 예약된 재고를 제외
+        int availableStock = (totalStock != null ? totalStock : 0) - totalReservedStock;
+        return Math.max(availableStock, 0); // 조회 api 이므로 제대로 되지 않은 값이면 무조건 0 반환(예외x)
+    }
+
+    private int getTotalReservedStock(Long ticketId) {
+        // 예약 재고 키 패턴 (ex: "reserved_stock:ticketId:*")
+        String reservedStockPattern = "reserved_stock:" + ticketId + ":*";
+
+        // 모든 예약된 재고를 조회하고 합산
+        return redisTemplate.keys(reservedStockPattern).stream()
+                .map(key -> redisTemplate.opsForValue().get(key))
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+    }
+
 }
