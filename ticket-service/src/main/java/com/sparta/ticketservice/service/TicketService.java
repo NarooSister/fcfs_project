@@ -59,4 +59,12 @@ public class TicketService {
                         Ticket::getPrice
                 ));
     }
+
+    public Map<Long, TicketDto> getTicketAllById(List<Long> ticketIds) {
+        return ticketRepository.findAllById(ticketIds).stream()
+                .collect(Collectors.toMap(
+                        Ticket::getId,
+                        ticket -> new TicketDto(ticket.getId(), ticket.getPrice(), ticket.getDate()) // Map의 값으로 TicketDto 생성
+                ));
+    }
 }

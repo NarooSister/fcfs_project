@@ -16,6 +16,7 @@ import com.sparta.orderservice.repository.PendingOrderRepository;
 import com.sparta.orderservice.toss.PaymentResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderConfirmationService orderConfirmationService;
@@ -151,6 +153,12 @@ public class OrderService {
             String paymentKey = UUID.randomUUID().toString();
             PaymentResponse paymentResponse = simulatePaymentVerification(paymentKey, totalAmount);
 
+            // 결제 성공 시 실제 재고 감소
+            for (PendingOrder pendingOrder : pendingOrders) {
+                String stockKey = generateStockKey(pendingOrder.getTicketId());
+                redisTemplate.opsForValue().decrement(stockKey, pendingOrder.getQuantity());
+            }
+
             // 결제와 주문 확정 로직, 카프카 재고감소 이벤트 실행(트랜잭션 설정)
             orderConfirmationService.confirmOrderAndPayment(paymentResponse, pendingOrders);
 
@@ -183,7 +191,24 @@ public class OrderService {
         orderRepository.save(order);
 
         List<OrderedTicket> orderedTickets = orderedTicketRepository.findByOrderId(orderId);
+
+        // 각 티켓 ID 수집
+        List<Long> ticketIds = orderedTickets.stream()
+                .map(OrderedTicket::getTicketId)
+                .toList();
+
+        // TicketClient를 사용해 티켓 정보 일괄 가져오기
+        Map<Long, TicketDto> ticketInfoMap = ticketClient.getTickets(ticketIds);
+
+
         orderedTickets.forEach(orderedTicket -> {
+            TicketDto ticketDto = ticketInfoMap.get(orderedTicket.getTicketId());
+
+            if (ticketDto != null) {
+                double refundAmount = refundService.calculateRefund(ticketDto, orderedTicket);
+                processRefund(refundAmount, orderedTicket);
+            }
+
             orderedTicket.cancel();
             restoreStockInRedis(orderedTicket);
             sendStockRestoreEvent(orderedTicket);
@@ -206,5 +231,10 @@ public class OrderService {
 
     private String generateStockKey(Long ticketId) {
         return "stock:" + ticketId;
+    }
+
+    private void processRefund(double refundAmount, OrderedTicket orderedTicket) {
+        // 실제 환불 처리 로직 구현 예시
+        log.info("Ticket ID: {}, 환불 금액: {}", orderedTicket.getId(), refundAmount);
     }
 }

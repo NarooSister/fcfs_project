@@ -34,4 +34,9 @@ public class ApiController {
     public Map<Long, Integer> getTicketPrices(@RequestParam("ticketIds") List<Long> ticketIds) {
         return ticketService.getTicketPrices(ticketIds);
     }
+
+    @PostMapping("/all")
+    public Map<Long, TicketDto> getTicketAllById(@RequestParam("ticketIds") List<Long> ticketIds) {
+        return ticketService.getTicketAllById(ticketIds);
+    }
 }

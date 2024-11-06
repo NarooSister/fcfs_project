@@ -22,6 +22,9 @@ public interface TicketClient {
     @PostMapping("/ticket-service/internal/tickets/prices")
     Map<Long, Integer> getTicketPrices(@RequestParam("ticketIds") List<Long> ticketIds);
 
+    @PostMapping("/ticket-service/internal/tickets/all")
+    Map<Long, TicketDto> getTickets(@RequestParam("ticketIds") List<Long> ticketIds);
+
     @GetMapping("/internal/errorful/case1")
     ResponseEntity<String> callCase1();
 
@@ -30,4 +33,6 @@ public interface TicketClient {
 
     @GetMapping("/internal/errorful/case3")
     ResponseEntity<String> callCase3();
+
+
 }

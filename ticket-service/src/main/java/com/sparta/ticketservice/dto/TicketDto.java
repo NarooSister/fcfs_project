@@ -17,6 +17,7 @@ public class TicketDto {
     private LocalDate date;
     private String status;
     private String type;
+
     public TicketDto(Ticket ticket) {
         this.id = ticket.getId();
         this.name = ticket.getName();
@@ -26,5 +27,11 @@ public class TicketDto {
         this.date = ticket.getDate();
         this.status = ticket.getStatus().name();
         this.type = ticket.getType().name();
+    }
+
+    public TicketDto(Long id, Integer price, LocalDate date) {
+        this.id = id;
+        this.price = price;
+        this.date = date;
     }
 }
