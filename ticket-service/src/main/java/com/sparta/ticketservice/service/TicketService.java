@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,5 +49,14 @@ public class TicketService {
         // 재고 복구 로직
         ticket.incrementStock(quantity);
         ticketRepository.save(ticket);
+    }
+
+    public Map<Long, Integer> getTicketPrices(List<Long> ticketIds) {
+        // ticketIds에 포함된 ID로 각각의 Ticket 가격을 조회하여 Map으로 반환
+        return ticketRepository.findAllById(ticketIds).stream()
+                .collect(Collectors.toMap(
+                        Ticket::getId,
+                        Ticket::getPrice
+                ));
     }
 }

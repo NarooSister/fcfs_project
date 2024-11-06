@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 public class PendingOrder {
     private String username;
     private Long ticketId;
+    private Integer price;
     private Integer quantity;
     private PendingStatus status;
     private LocalDateTime createdAt;

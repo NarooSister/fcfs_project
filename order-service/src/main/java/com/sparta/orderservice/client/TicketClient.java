@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
+import java.util.Map;
+
 @FeignClient(name = "gateway") // ticket-service를 가리킴
 public interface TicketClient {
     @GetMapping("/ticket-service/internal/tickets/{ticketId}")
@@ -15,6 +18,9 @@ public interface TicketClient {
 
     @PostMapping("/ticket-service/internal/tickets/{ticketId}/restore")
     void restoreStock(@PathVariable("ticketId") Long ticketId, @RequestParam("quantity") int quantity);
+
+    @PostMapping("/ticket-service/internal/tickets/prices")
+    Map<Long, Integer> getTicketPrices(@RequestParam("ticketIds") List<Long> ticketIds);
 
     @GetMapping("/internal/errorful/case1")
     ResponseEntity<String> callCase1();

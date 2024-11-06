@@ -21,10 +21,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -36,14 +33,11 @@ public class OrderService {
     private final PendingOrderRepository pendingOrderRepository;
     private final TicketClient ticketClient;
     private final RefundService refundService;
-    private final KafkaTemplate<String, StockDecrEvent> kafkaDecrTemplate;
     private final KafkaTemplate<String, StockIncrEvent> kafkaIncrTemplate;
     private final RedisTemplate<String, Integer> redisTemplate;
     private final RedisTemplate<String, Object> pendingOrderRedisTemplate;
 
-    private static final String STOCK_DECREMENT_TOPIC = "stock-decrement-topic";
     private static final String STOCK_RESTORE_TOPIC = "stock-restore-topic";
-
 
     // 사용자의 모든 주문 가져오기
     public List<OrderDto> readAllOrdersByUser(String username) {
@@ -68,11 +62,30 @@ public class OrderService {
     public List<String> createPendingOrder(String username, OrderRequestDto orderRequestDto) {
         List<String> pendingOrderIds = new ArrayList<>();
 
+        if (orderRequestDto == null || orderRequestDto.getOrderedTickets().isEmpty()) {
+            throw new OrderBusinessException(OrderServiceErrorCode.INVALID_ORDER_REQUEST);
+        }
+        List<Long> ticketIds = orderRequestDto.getOrderedTickets().stream()
+                .map(OrderedTicketDto::getTicketId)
+                .toList();
+        Map<Long, Integer> ticketPrices = ticketClient.getTicketPrices(ticketIds);
+
         for (OrderedTicketDto orderedTicket : orderRequestDto.getOrderedTickets()) {
+            if (orderedTicket.getTicketId() == null || orderedTicket.getQuantity() == null || orderedTicket.getQuantity() <= 0) {
+                throw new OrderBusinessException(OrderServiceErrorCode.PRICE_MISMATCH);
+            }
+
+            // 서버의 실제 가격 정보 확인 (예: TicketClient를 통해 원본 데이터 가져오기)
+            Integer ticketPrice = ticketPrices.get(orderedTicket.getTicketId());
+            Integer totalPrice = ticketPrice*orderedTicket.getQuantity();
+            if (!orderedTicket.getPrice().equals(totalPrice)) {
+                throw new OrderBusinessException(OrderServiceErrorCode.PRICE_MISMATCH);
+            }
+
             String uuid = "" + UUID.randomUUID();
 
-            String stockKey = "stock:" + orderedTicket.getTicketId();   // 전체 재고
-            String reservedStockKey = "reserved_stock:" + orderedTicket.getTicketId();  // 예약 재고
+            String stockKey = generateStockKey(orderedTicket.getTicketId());   // 전체 재고
+            String reservedStockKey = generateReservedStockKey(uuid , username);  // 예약 재고
 
             Integer totalStock = redisTemplate.opsForValue().get(stockKey);
             Integer reservedStock = redisTemplate.opsForValue().get(reservedStockKey);
@@ -86,6 +99,7 @@ public class OrderService {
             PendingOrder pendingOrder = PendingOrder.builder()
                     .username(username)
                     .ticketId(orderedTicket.getTicketId())
+                    .price(totalPrice)
                     .quantity(orderedTicket.getQuantity())
                     .createdAt(LocalDateTime.now())
                     .status(PendingOrder.PendingStatus.PENDING)
@@ -100,17 +114,20 @@ public class OrderService {
     }
 
     public void createReservation(String id, String username, int quantity) {
-        String reservedStockKey = "reserved_stock:" + id + ":" + username;
+        String reservedStockKey = generateReservedStockKey(id, username);
 
         redisTemplate.opsForValue().set(reservedStockKey, quantity);
         redisTemplate.expire(reservedStockKey, 10, TimeUnit.MINUTES);
     }
+
+
 
     // ========================= 결제 시도 (결제화면에서 결제하기 버튼 누름) ================================
 
     public void attemptPayment(String username, List<String> pendingOrderIds) {
         List<PendingOrder> pendingOrders = new ArrayList<>();
         List<String> reservedStockKeys = new ArrayList<>();
+        int totalAmount = 0;
 
         for (String pendingOrderId : pendingOrderIds) {
             PendingOrder pendingOrder = pendingOrderRepository.getPendingOrder(pendingOrderId);
@@ -119,20 +136,22 @@ public class OrderService {
             }
 
             // 예약된 재고 확인
-            String reservedStockKey = "reserved_stock:" + pendingOrderId + ":" + username;
+            String reservedStockKey = generateReservedStockKey(pendingOrderId, username);
             if (redisTemplate.opsForValue().get(reservedStockKey) == null) {
                 throw new OrderBusinessException(OrderServiceErrorCode.INVALID_PENDING_STOCK);
             }
 
+            totalAmount += pendingOrder.getPrice();
             pendingOrders.add(pendingOrder);
             reservedStockKeys.add(reservedStockKey);
         }
+
         try {
             // 결제 모듈 가정하여 시뮬레이션
             String paymentKey = UUID.randomUUID().toString();
-            PaymentResponse paymentResponse = simulatePaymentVerification(paymentKey);
+            PaymentResponse paymentResponse = simulatePaymentVerification(paymentKey, totalAmount);
 
-            // 결제와 주문 확정 로직(트랜잭션 설정)
+            // 결제와 주문 확정 로직, 카프카 재고감소 이벤트 실행(트랜잭션 설정)
             orderConfirmationService.confirmOrderAndPayment(paymentResponse, pendingOrders);
 
         } catch (Exception e) {
@@ -144,11 +163,14 @@ public class OrderService {
     }
 
     // 결제 검증 시뮬레이션 메서드
-    public PaymentResponse simulatePaymentVerification(String paymentKey) {
+    public PaymentResponse simulatePaymentVerification(String paymentKey, Integer totalAmount) {
         // 결제 상태를 성공으로 시뮬레이션
-        return new PaymentResponse(paymentKey, 10000, "COMPLETED"); // 예시 금액과 상태 설정
+        return new PaymentResponse(paymentKey, totalAmount, "COMPLETED"); // 예시 금액과 상태 설정
     }
 
+    private String generateReservedStockKey(String ticketUUID, String username){
+        return "reserved_stock:" + ticketUUID +":"+ username;
+    }
 
     //==================================================================================
     // 주문 취소 로직

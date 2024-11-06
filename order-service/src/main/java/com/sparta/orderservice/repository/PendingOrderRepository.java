@@ -26,6 +26,7 @@ public class PendingOrderRepository {
 
         hashOperations.put(key, "username", pendingOrder.getUsername());
         hashOperations.put(key, "ticketId", String.valueOf(pendingOrder.getTicketId()));
+        hashOperations.put(key, "price", String.valueOf(pendingOrder.getPrice()));
         hashOperations.put(key, "quantity", String.valueOf(pendingOrder.getQuantity()));
         hashOperations.put(key, "status", pendingOrder.getStatus().name());
 
@@ -40,12 +41,14 @@ public class PendingOrderRepository {
         // 해시 필드를 읽어와 객체로 생성
         String username = hashOperations.get(key, "username");
         Long ticketId = Long.valueOf(Objects.requireNonNull(hashOperations.get(key, "ticketId")));
+        Integer price = Integer.valueOf(Objects.requireNonNull(hashOperations.get(key, "price")));
         Integer quantity = Integer.valueOf(Objects.requireNonNull(hashOperations.get(key, "quantity")));
         PendingOrder.PendingStatus status = PendingOrder.PendingStatus.valueOf(hashOperations.get(key, "status"));
 
         return PendingOrder.builder()
                 .username(username)
                 .ticketId(ticketId)
+                .price(price)
                 .quantity(quantity)
                 .status(status)
                 .build();
