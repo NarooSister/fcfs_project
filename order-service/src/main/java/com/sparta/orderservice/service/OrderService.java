@@ -58,7 +58,6 @@ public class OrderService {
                 .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
     }
 
-
     //========================== 결제 화면 진입 ==========================================
 
     public List<String> createPendingOrder(String username, OrderRequestDto orderRequestDto) {
@@ -79,7 +78,7 @@ public class OrderService {
 
             // 서버의 실제 가격 정보 확인 (예: TicketClient를 통해 원본 데이터 가져오기)
             Integer ticketPrice = ticketPrices.get(orderedTicket.getTicketId());
-            Integer totalPrice = ticketPrice*orderedTicket.getQuantity();
+            Integer totalPrice = ticketPrice * orderedTicket.getQuantity();
             if (!orderedTicket.getPrice().equals(totalPrice)) {
                 throw new OrderBusinessException(OrderServiceErrorCode.PRICE_MISMATCH);
             }
@@ -87,7 +86,7 @@ public class OrderService {
             String uuid = "" + UUID.randomUUID();
 
             String stockKey = generateStockKey(orderedTicket.getTicketId());   // 전체 재고
-            String reservedStockKey = generateReservedStockKey(uuid , username);  // 예약 재고
+            String reservedStockKey = generateReservedStockKey(uuid, username);  // 예약 재고
 
             Integer totalStock = redisTemplate.opsForValue().get(stockKey);
             Integer reservedStock = redisTemplate.opsForValue().get(reservedStockKey);
@@ -121,8 +120,6 @@ public class OrderService {
         redisTemplate.opsForValue().set(reservedStockKey, quantity);
         redisTemplate.expire(reservedStockKey, 10, TimeUnit.MINUTES);
     }
-
-
 
     // ========================= 결제 시도 (결제화면에서 결제하기 버튼 누름) ================================
 
@@ -176,8 +173,8 @@ public class OrderService {
         return new PaymentResponse(paymentKey, totalAmount, "COMPLETED"); // 예시 금액과 상태 설정
     }
 
-    private String generateReservedStockKey(String ticketUUID, String username){
-        return "reserved_stock:" + ticketUUID +":"+ username;
+    private String generateReservedStockKey(String ticketUUID, String username) {
+        return "reserved_stock:" + ticketUUID + ":" + username;
     }
 
     //==================================================================================
@@ -199,7 +196,6 @@ public class OrderService {
 
         // TicketClient를 사용해 티켓 정보 일괄 가져오기
         Map<Long, TicketDto> ticketInfoMap = ticketClient.getTickets(ticketIds);
-
 
         orderedTickets.forEach(orderedTicket -> {
             TicketDto ticketDto = ticketInfoMap.get(orderedTicket.getTicketId());
