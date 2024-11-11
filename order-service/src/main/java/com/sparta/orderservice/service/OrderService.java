@@ -18,6 +18,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -41,21 +43,41 @@ public class OrderService {
 
     private static final String STOCK_RESTORE_TOPIC = "stock-restore-topic";
 
+    private static final String CHECK_AND_RESERVE_STOCK_SCRIPT = """
+            -- 전체 재고를 가져옵니다.
+            local stock = tonumber(redis.call('GET', KEYS[1]))
+            
+            -- 모든 예약된 재고의 합계를 계산합니다.
+            local totalReserved = 0
+            for i, key in ipairs(redis.call('KEYS', ARGV[2])) do
+                totalReserved = totalReserved + tonumber(redis.call('GET', key))
+            end
+            
+            -- 요청된 수량을 가져옵니다.
+            local requestedQuantity = tonumber(ARGV[1])
+            
+            -- 사용 가능한 재고를 계산합니다.
+            local availableStock = stock - totalReserved
+            
+            -- 사용 가능한 재고가 요청된 수량보다 크거나 같으면 예약을 설정하고, 그렇지 않으면 0 반환
+            if availableStock >= requestedQuantity then
+                redis.call('SET', KEYS[2], requestedQuantity)
+                redis.call('EXPIRE', KEYS[2], 600)
+                return 1
+            else
+                return 0
+            end
+            """;
+
+
     // 사용자의 모든 주문 가져오기
     public List<OrderDto> readAllOrdersByUser(String username) {
-        return Optional.ofNullable(orderRepository.findAllByUsername(username))
-                .filter(orderList -> !orderList.isEmpty())
-                .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ALL_ORDER_NOT_FOUND))
-                .stream()
-                .map(OrderDto::new)
-                .toList();
+        return Optional.ofNullable(orderRepository.findAllByUsername(username)).filter(orderList -> !orderList.isEmpty()).orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ALL_ORDER_NOT_FOUND)).stream().map(OrderDto::new).toList();
     }
 
     // 사용자의 주문 상세 내역 가져오기
     public OrderDto readOrderByUser(String username, Long orderId) {
-        return orderRepository.findByIdAndUsername(orderId, username)
-                .map(OrderDto::new)
-                .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
+        return orderRepository.findByIdAndUsername(orderId, username).map(OrderDto::new).orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
     }
 
     //========================== 결제 화면 진입 ==========================================
@@ -66,9 +88,7 @@ public class OrderService {
         if (orderRequestDto == null || orderRequestDto.getOrderedTickets().isEmpty()) {
             throw new OrderBusinessException(OrderServiceErrorCode.INVALID_ORDER_REQUEST);
         }
-        List<Long> ticketIds = orderRequestDto.getOrderedTickets().stream()
-                .map(OrderedTicketDto::getTicketId)
-                .toList();
+        List<Long> ticketIds = orderRequestDto.getOrderedTickets().stream().map(OrderedTicketDto::getTicketId).toList();
         Map<Long, Integer> ticketPrices = ticketClient.getTicketPrices(ticketIds);
 
         for (OrderedTicketDto orderedTicket : orderRequestDto.getOrderedTickets()) {
@@ -83,43 +103,34 @@ public class OrderService {
                 throw new OrderBusinessException(OrderServiceErrorCode.PRICE_MISMATCH);
             }
 
-            String uuid = "" + UUID.randomUUID();
+            String stockKey = generateStockKey(orderedTicket.getTicketId());
+            String reservedStockKey = "reserved_stock:" + orderedTicket.getTicketId() + ":*";
 
-            String stockKey = generateStockKey(orderedTicket.getTicketId());   // 전체 재고
-            String reservedStockKey = generateReservedStockKey(uuid, username);  // 예약 재고
+//            // Redis에 null 값이 들어가지 않도록 0 기본값 적용
+//            Integer totalStock = redisTemplate.opsForValue().get(stockKey);
+//            if (totalStock == null) totalStock = 0;
+//
+//            Integer quantity = orderedTicket.getQuantity();
+//            if (quantity == null) quantity = 0;
 
-            Integer totalStock = redisTemplate.opsForValue().get(stockKey);
-            Integer reservedStock = redisTemplate.opsForValue().get(reservedStockKey);
+            // Lua 스크립트 실행을 위한 RedisScript 객체 생성
+            RedisScript<Long> script = new DefaultRedisScript<>(CHECK_AND_RESERVE_STOCK_SCRIPT, Long.class);
 
-            int availableStock = (totalStock != null ? totalStock : 0) - (reservedStock != null ? reservedStock : 0);
+            Long result = redisTemplate.execute(script, Arrays.asList(stockKey, reservedStockKey), orderedTicket.getQuantity().toString(), "reserved_stock:" + orderedTicket.getTicketId() + ":*");
 
-            if (availableStock < orderedTicket.getQuantity()) {
+            if (result == null || result == 0) {
                 throw new OrderBusinessException(OrderServiceErrorCode.INSUFFICIENT_STOCK);
             }
+            String uuid = UUID.randomUUID().toString();
 
-            PendingOrder pendingOrder = PendingOrder.builder()
-                    .username(username)
-                    .ticketId(orderedTicket.getTicketId())
-                    .price(totalPrice)
-                    .quantity(orderedTicket.getQuantity())
-                    .createdAt(LocalDateTime.now())
-                    .status(PendingOrder.PendingStatus.PENDING)
-                    .build();
+            PendingOrder pendingOrder = PendingOrder.builder().username(username).ticketId(orderedTicket.getTicketId()).price(totalPrice).quantity(orderedTicket.getQuantity()).createdAt(LocalDateTime.now()).status(PendingOrder.PendingStatus.PENDING).build();
 
             pendingOrderRepository.savePendingOrder(uuid, pendingOrder);
-
-            createReservation(uuid, username, orderedTicket.getQuantity());
             pendingOrderIds.add(uuid);
         }
         return pendingOrderIds; // 예비 주문 ID 반환
     }
 
-    public void createReservation(String id, String username, int quantity) {
-        String reservedStockKey = generateReservedStockKey(id, username);
-
-        redisTemplate.opsForValue().set(reservedStockKey, quantity);
-        redisTemplate.expire(reservedStockKey, 10, TimeUnit.MINUTES);
-    }
 
     // ========================= 결제 시도 (결제화면에서 결제하기 버튼 누름) ================================
 
@@ -181,8 +192,7 @@ public class OrderService {
     // 주문 취소 로직
     @Transactional
     public void cancelOrder(String username, Long orderId) {
-        Orders order = orderRepository.findByIdAndUsername(orderId, username)
-                .orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
+        Orders order = orderRepository.findByIdAndUsername(orderId, username).orElseThrow(() -> new OrderBusinessException(OrderServiceErrorCode.ORDER_NOT_FOUND));
 
         order.cancelOrder();
         orderRepository.save(order);
@@ -190,9 +200,7 @@ public class OrderService {
         List<OrderedTicket> orderedTickets = orderedTicketRepository.findByOrderId(orderId);
 
         // 각 티켓 ID 수집
-        List<Long> ticketIds = orderedTickets.stream()
-                .map(OrderedTicket::getTicketId)
-                .toList();
+        List<Long> ticketIds = orderedTickets.stream().map(OrderedTicket::getTicketId).toList();
 
         // TicketClient를 사용해 티켓 정보 일괄 가져오기
         Map<Long, TicketDto> ticketInfoMap = ticketClient.getTickets(ticketIds);
@@ -218,10 +226,7 @@ public class OrderService {
     }
 
     private void sendStockRestoreEvent(OrderedTicket orderedTicket) {
-        StockIncrEvent stockRestoreEvent = new StockIncrEvent(
-                orderedTicket.getTicketId(),
-                orderedTicket.getQuantity()
-        );
+        StockIncrEvent stockRestoreEvent = new StockIncrEvent(orderedTicket.getTicketId(), orderedTicket.getQuantity());
         kafkaIncrTemplate.send(STOCK_RESTORE_TOPIC, stockRestoreEvent); // 재고 복구 이벤트를 Kafka로 전송
     }
 
@@ -253,11 +258,7 @@ public class OrderService {
         String reservedStockPattern = "reserved_stock:" + ticketId + ":*";
 
         // 모든 예약된 재고를 조회하고 합산
-        return redisTemplate.keys(reservedStockPattern).stream()
-                .map(key -> redisTemplate.opsForValue().get(key))
-                .filter(Objects::nonNull)
-                .mapToInt(Integer::intValue)
-                .sum();
+        return redisTemplate.keys(reservedStockPattern).stream().map(key -> redisTemplate.opsForValue().get(key)).filter(Objects::nonNull).mapToInt(Integer::intValue).sum();
     }
 
 }
