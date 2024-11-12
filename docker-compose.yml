@@ -151,7 +151,7 @@ services:
       resources:
         limits:
           cpus: '0.50'   # CPU 50%
-          memory: 512M    # 메모리 512MB
+          memory: 256M    # 메모리 512MB
 
   # Redis
   redis:
@@ -168,7 +168,7 @@ services:
       resources:
         limits:
           cpus: '0.25'   # CPU 25%
-          memory: 256M    # 메모리 256MB
+          memory: 512M    # 메모리 256MB
 
 volumes:
   mysql-data:

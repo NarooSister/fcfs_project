@@ -44,31 +44,25 @@ public class OrderService {
     private static final String STOCK_RESTORE_TOPIC = "stock-restore-topic";
 
     private static final String CHECK_AND_RESERVE_STOCK_SCRIPT = """
-            -- 전체 재고를 가져옵니다.
-            local stock = tonumber(redis.call('GET', KEYS[1]))
-            
-            -- 모든 예약된 재고의 합계를 계산합니다.
-            local totalReserved = 0
-            for i, key in ipairs(redis.call('KEYS', ARGV[2])) do
-                totalReserved = totalReserved + tonumber(redis.call('GET', key))
-            end
-            
-            -- 요청된 수량을 가져옵니다.
-            local requestedQuantity = tonumber(ARGV[1])
-            
-            -- 사용 가능한 재고를 계산합니다.
-            local availableStock = stock - totalReserved
-            
-            -- 사용 가능한 재고가 요청된 수량보다 크거나 같으면 예약을 설정하고, 그렇지 않으면 0 반환
-            if availableStock >= requestedQuantity then
-                redis.call('SET', KEYS[2], requestedQuantity)
-                redis.call('EXPIRE', KEYS[2], 600)
-                return 1
-            else
-                return 0
-            end
-            """;
-
+    local stock = redis.call('GET', KEYS[1])   -- 전체 재고 가져오기
+    stock = stock and tonumber(stock) or 0
+    
+    local reserved = redis.call('GET', KEYS[2])   -- 예약된 재고 가져오기
+    reserved = reserved and tonumber(reserved) or 0
+    
+    local requestedQuantity = tonumber(ARGV[1]) or 0
+    
+    local availableStock = stock - reserved  -- 사용 가능한 재고 계산
+    
+    if availableStock >= requestedQuantity then
+        redis.call('SET', KEYS[2], reserved + requestedQuantity)  -- 예약 재고 업데이트
+        redis.call('EXPIRE', KEYS[2], 600)  -- TTL 설정: 10분
+        return 1
+    else
+        return 0
+    end
+    
+    """;
 
     // 사용자의 모든 주문 가져오기
     public List<OrderDto> readAllOrdersByUser(String username) {
@@ -95,6 +89,7 @@ public class OrderService {
             if (orderedTicket.getTicketId() == null || orderedTicket.getQuantity() == null || orderedTicket.getQuantity() <= 0) {
                 throw new OrderBusinessException(OrderServiceErrorCode.PRICE_MISMATCH);
             }
+            String uuid = UUID.randomUUID().toString();
 
             // 서버의 실제 가격 정보 확인 (예: TicketClient를 통해 원본 데이터 가져오기)
             Integer ticketPrice = ticketPrices.get(orderedTicket.getTicketId());
@@ -104,26 +99,32 @@ public class OrderService {
             }
 
             String stockKey = generateStockKey(orderedTicket.getTicketId());
-            String reservedStockKey = "reserved_stock:" + orderedTicket.getTicketId() + ":*";
-
-//            // Redis에 null 값이 들어가지 않도록 0 기본값 적용
-//            Integer totalStock = redisTemplate.opsForValue().get(stockKey);
-//            if (totalStock == null) totalStock = 0;
-//
-//            Integer quantity = orderedTicket.getQuantity();
-//            if (quantity == null) quantity = 0;
+            String reservedStockKey = "reserved_stock:" + orderedTicket.getTicketId() + ":" + uuid;
 
             // Lua 스크립트 실행을 위한 RedisScript 객체 생성
+            // Lua 스크립트를 사용하여 재고 확인 및 예약
             RedisScript<Long> script = new DefaultRedisScript<>(CHECK_AND_RESERVE_STOCK_SCRIPT, Long.class);
-
-            Long result = redisTemplate.execute(script, Arrays.asList(stockKey, reservedStockKey), orderedTicket.getQuantity().toString(), "reserved_stock:" + orderedTicket.getTicketId() + ":*");
+            Long result = redisTemplate.execute(
+                    script,
+                    Arrays.asList(stockKey, "reserved_stock:" + orderedTicket.getTicketId()),
+                    orderedTicket.getQuantity(),
+                    username  // 사용자 ID 또는 UUID
+            );
+            log.info("Requested quantity: {}", orderedTicket.getQuantity());
+            log.info("Reserved stock for ticket {} after reservation: {}", orderedTicket.getTicketId(), redisTemplate.opsForValue().get(reservedStockKey));
 
             if (result == null || result == 0) {
                 throw new OrderBusinessException(OrderServiceErrorCode.INSUFFICIENT_STOCK);
             }
-            String uuid = UUID.randomUUID().toString();
 
-            PendingOrder pendingOrder = PendingOrder.builder().username(username).ticketId(orderedTicket.getTicketId()).price(totalPrice).quantity(orderedTicket.getQuantity()).createdAt(LocalDateTime.now()).status(PendingOrder.PendingStatus.PENDING).build();
+            PendingOrder pendingOrder = PendingOrder.builder()
+                    .username(username)
+                    .ticketId(orderedTicket.getTicketId())
+                    .price(totalPrice)
+                    .quantity(orderedTicket.getQuantity())
+                    .createdAt(LocalDateTime.now())
+                    .status(PendingOrder.PendingStatus.PENDING)
+                    .build();
 
             pendingOrderRepository.savePendingOrder(uuid, pendingOrder);
             pendingOrderIds.add(uuid);
@@ -146,8 +147,10 @@ public class OrderService {
             }
 
             // 예약된 재고 확인
-            String reservedStockKey = generateReservedStockKey(pendingOrderId, username);
-            if (redisTemplate.opsForValue().get(reservedStockKey) == null) {
+            String reservedStockKey = "reserved_stock:" + pendingOrder.getTicketId();
+            Integer reservedStock = redisTemplate.opsForValue().get(reservedStockKey);
+
+            if (reservedStock == null) {
                 throw new OrderBusinessException(OrderServiceErrorCode.INVALID_PENDING_STOCK);
             }
 
@@ -184,9 +187,6 @@ public class OrderService {
         return new PaymentResponse(paymentKey, totalAmount, "COMPLETED"); // 예시 금액과 상태 설정
     }
 
-    private String generateReservedStockKey(String ticketUUID, String username) {
-        return "reserved_stock:" + ticketUUID + ":" + username;
-    }
 
     //==================================================================================
     // 주문 취소 로직
@@ -260,5 +260,4 @@ public class OrderService {
         // 모든 예약된 재고를 조회하고 합산
         return redisTemplate.keys(reservedStockPattern).stream().map(key -> redisTemplate.opsForValue().get(key)).filter(Objects::nonNull).mapToInt(Integer::intValue).sum();
     }
-
 }
