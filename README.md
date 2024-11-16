@@ -3,7 +3,7 @@
 
 이 프로젝트는 놀이공원 내에 위치한 인기 동물원 판다월드의 입장권 구매 요청이 **특정 시간대에 폭증하는 상황**을 가정하여 설계된 개인 프로젝트입니다. **한정된 재고를 선착순으로 판매하는 시스템**을 구현하여, 대규모 트래픽 상황에서도 안정적이고 정확하게 작동할 수 있도록 개발되었습니다.
 
-초기에는 모놀리식 구조로 설계되었으나, 이후 **마이크로서비스 아키텍처(MSA)로 전환**하여 유저 관리, 티켓 관리, 주문 관리 서비스를 독립적으로 운영할 수 있도록 설계하였습니다.
+초기에는 모놀리식 구조로 설계되었으나, 특정 서비스에 트래픽이 몰릴 걸 고려해서 서비스 별 스케일 아웃을 하기 위해 **마이크로서비스 아키텍처(MSA)로 전환**하여 유저 관리, 티켓 관리, 주문 관리 서비스를 독립적으로 운영할 수 있도록 설계하였습니다.
 
 <br>
 
@@ -11,6 +11,7 @@
 **기간** : 2024.10.16 ~ 2024.11.16 (4주)
 
 <br>
+
 
 ## 🛠 개발 환경
 
@@ -28,7 +29,15 @@ docker compose up -d
 
 <br>
 
+## 🏗 프로젝트 아키텍처
+![아키텍처](https://github.com/user-attachments/assets/837cc05b-5983-4909-ae08-f4fcd9bee7b2)
 
+<br>
+
+## 🏷 ERD
+![ERD](https://github.com/user-attachments/assets/19bcdbb0-d486-4b9e-b52d-9c0e9b5b4823)
+
+<br>
 
 
 ## 🎯 주요 기능
@@ -51,7 +60,6 @@ docker compose up -d
 <br>
 
 
-
 ## 🗂 API 문서
 [놀이공원 티켓 구매 사이트 API 명세 (POSTMAN)](https://documenter.getpostman.com/view/32408353/2sAY55ZHJX)   
 
@@ -59,10 +67,15 @@ docker compose up -d
 
 
 ## 🔥 성능 최적화
-- [Redis 캐싱을 통한 결제 처리 속도 00% 향상]()   
-`Pending Order` 데이터를 Redis에 저장하여 데이터베이스 요청을 줄이고 결제 프로세스의 처리 속도를 00% 개선했습니다.
+- [Redis 캐싱을 통한 결제 처리 속도 00% 향상]()
+  고민 과정: 
+  해결 방법: 
+  결과: `Pending Order` 데이터를 Redis에 저장하여 데이터베이스 요청을 줄이고 결제 프로세스의 처리 속도를 00% 개선했습니다.
 
-- [Lua 스크립트로 초당 300건 동시 처리 구현]()  
+- [Lua 스크립트로 초당 300건 동시 처리 구현]()
+  고민 과정:
+  해결 방법:
+  결과:
 Redis에서 Lua 스크립트를 사용해 재고 감소 연산을 원자적으로 처리, 초당 최대 300건의 동시 주문을 안정적으로 처리할 수 있도록 구현했습니다.  
 
 - [MSA 도입으로 확장성과 안정성 확보]()  
@@ -82,7 +95,7 @@ JWT 검증이 필요 없는 호출은 검증 필터를 우회하도록 설정하
 
 ## 💭 기술적 의사결정
 
-- [Redis 캐싱 전략으로 성능 최적화]()   
+- [Redis 캐싱 전략으로 성능 최적화]()  
 `Pending Order`와 장바구니 데이터를 Redis에 캐싱하여 데이터베이스 요청을 줄이고 성능을 향상했습니다.
 
 - [MSA 환경에서 서비스 간 동기 호출(OpenFeign)과 비동기 호출(Kafka)의 활용]()    
@@ -96,86 +109,6 @@ JWT 검증을 API Gateway에서만 처리하고, 각 서비스에서는 Security
 
 <br>
 
-## 🏗 프로젝트 아키텍처
-![아키텍처](https://github.com/user-attachments/assets/837cc05b-5983-4909-ae08-f4fcd9bee7b2)
-
-<br>
-
-## 🏷 ERD
-![ERD](https://github.com/user-attachments/assets/424132dc-e611-485a-8480-0feaa8b5c4d0)
-
-<br>
-
-## 📂 폴더 구조
-
-```
-📦eureka-server
- ┣ 📂src
- ┃ ┣ 📂main
- ┃ ┃ ┣ 📂java.com.sparta
- ┃ ┃ ┃ ┗📂eurekaserver
- ┃ ┃ ┃ ┃ ┗📂security
- ┃ ┃ ┗ 📂resources
- ┗ ┗ 📂test
-
-📦gateway
- ┣ 📂src
- ┃ ┣ 📂main
- ┃ ┃ ┣ 📂java.com.sparta
- ┃ ┃ ┃ ┗ 📂gateway
- ┃ ┃ ┃ ┃ ┗ 📂security
- ┃ ┃ ┗ 📂resources
- ┗ ┗ 📂test
-
-📦order-service
- ┣ 📂src
- ┃ ┣ 📂main
- ┃ ┃ ┣ 📂java.com.sparta
- ┃ ┃ ┃ ┗ 📂orderservice
- ┃ ┃ ┃ ┃ ┣ 📂client
- ┃ ┃ ┃ ┃ ┣ 📂config
- ┃ ┃ ┃ ┃ ┣ 📂controller
- ┃ ┃ ┃ ┃ ┣ 📂dto
- ┃ ┃ ┃ ┃ ┣ 📂entity
- ┃ ┃ ┃ ┃ ┣ 📂event
- ┃ ┃ ┃ ┃ ┣ 📂exception
- ┃ ┃ ┃ ┃ ┣ 📂repository
- ┃ ┃ ┃ ┃ ┣ 📂service
- ┃ ┃ ┃ ┃ ┗ 📂toss
- ┃ ┃ ┗ 📂resources
- ┗ ┗ 📂test
-
-📦ticket-service
- ┣ 📂src
- ┃ ┣ 📂main
- ┃ ┃ ┣ 📂java.com.sparta
- ┃ ┃ ┃ ┗ 📂ticketservice
- ┃ ┃ ┃ ┃ ┣ 📂config
- ┃ ┃ ┃ ┃ ┣ 📂controller
- ┃ ┃ ┃ ┃ ┣ 📂dto
- ┃ ┃ ┃ ┃ ┣ 📂entity
- ┃ ┃ ┃ ┃ ┣ 📂event
- ┃ ┃ ┃ ┃ ┣ 📂exception
- ┃ ┃ ┃ ┃ ┣ 📂repository
- ┃ ┃ ┃ ┃ ┗ 📂service
- ┃ ┃ ┗ 📂resources
- ┗ ┗ 📂test
-
-📦user-service
- ┣ 📂src
- ┃ ┣ 📂main
- ┃ ┃ ┣ 📂java.com.sparta
- ┃ ┃ ┃ ┗ 📂userservice
- ┃ ┃ ┃ ┃ ┣ 📂config
- ┃ ┃ ┃ ┃ ┣ 📂controller
- ┃ ┃ ┃ ┃ ┣ 📂dto
- ┃ ┃ ┃ ┃ ┣ 📂entity
- ┃ ┃ ┃ ┃ ┣ 📂exception
- ┃ ┃ ┃ ┃ ┣ 📂jwt
- ┃ ┃ ┃ ┃ ┣ 📂repository
- ┃ ┃ ┃ ┃ ┗ 📂service
- ┃ ┃ ┗ 📂resources
- ┗ ┗ 📂test
 
 
-```
+
