@@ -5,13 +5,11 @@ import com.sparta.orderservice.client.TicketClient;
 import com.sparta.orderservice.dto.*;
 import com.sparta.orderservice.entity.OrderedTicket;
 import com.sparta.orderservice.entity.Orders;
-import com.sparta.orderservice.event.StockDecrEvent;
 import com.sparta.orderservice.event.StockIncrEvent;
 import com.sparta.orderservice.exception.OrderBusinessException;
 import com.sparta.orderservice.exception.OrderServiceErrorCode;
 import com.sparta.orderservice.repository.OrderRepository;
 import com.sparta.orderservice.repository.OrderedTicketRepository;
-
 import com.sparta.orderservice.repository.PendingOrderRepository;
 import com.sparta.orderservice.toss.PaymentResponse;
 import jakarta.transaction.Transactional;
@@ -25,7 +23,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -44,25 +41,25 @@ public class OrderService {
     private static final String STOCK_RESTORE_TOPIC = "stock-restore-topic";
 
     private static final String CHECK_AND_RESERVE_STOCK_SCRIPT = """
-    local stock = redis.call('GET', KEYS[1])   -- 전체 재고 가져오기
-    stock = stock and tonumber(stock) or 0
-    
-    local reserved = redis.call('GET', KEYS[2])   -- 예약된 재고 가져오기
-    reserved = reserved and tonumber(reserved) or 0
-    
-    local requestedQuantity = tonumber(ARGV[1]) or 0
-    
-    local availableStock = stock - reserved  -- 사용 가능한 재고 계산
-    
-    if availableStock >= requestedQuantity then
-        redis.call('SET', KEYS[2], reserved + requestedQuantity)  -- 예약 재고 업데이트
-        redis.call('EXPIRE', KEYS[2], 600)  -- TTL 설정: 10분
-        return 1
-    else
-        return 0
-    end
-    
-    """;
+            local stock = redis.call('GET', KEYS[1])   -- 전체 재고 가져오기
+            stock = stock and tonumber(stock) or 0
+            
+            local reserved = redis.call('GET', KEYS[2])   -- 예약된 재고 가져오기
+            reserved = reserved and tonumber(reserved) or 0
+            
+            local requestedQuantity = tonumber(ARGV[1]) or 0
+            
+            local availableStock = stock - reserved  -- 사용 가능한 재고 계산
+            
+            if availableStock >= requestedQuantity then
+                redis.call('SET', KEYS[2], reserved + requestedQuantity)  -- 예약 재고 업데이트
+                redis.call('EXPIRE', KEYS[2], 600)  -- TTL 설정: 10분
+                return 1
+            else
+                return 0
+            end
+            
+            """;
 
     // 사용자의 모든 주문 가져오기
     public List<OrderDto> readAllOrdersByUser(String username) {

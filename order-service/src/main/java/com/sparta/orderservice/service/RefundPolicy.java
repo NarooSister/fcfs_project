@@ -2,6 +2,7 @@ package com.sparta.orderservice.service;
 
 public interface RefundPolicy {
     double calculateRefundAmount(int ticketPrice, int quantity);
+
     class FullRefundPolicy implements RefundPolicy {
         @Override
         public double calculateRefundAmount(int ticketPrice, int quantity) {

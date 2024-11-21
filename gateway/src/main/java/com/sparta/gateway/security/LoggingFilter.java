@@ -20,7 +20,7 @@ public class LoggingFilter extends AbstractGatewayFilterFactory<LoggingFilter.Co
 
     @Override
     public GatewayFilter apply(Config config) {
-        GatewayFilter filter = new OrderedGatewayFilter(((exchange, chain) -> {
+        return new OrderedGatewayFilter(((exchange, chain) -> {
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();
 
@@ -34,8 +34,6 @@ public class LoggingFilter extends AbstractGatewayFilterFactory<LoggingFilter.Co
                 }
             }));
         }), Ordered.HIGHEST_PRECEDENCE);
-
-        return filter;
     }
 
     @Data

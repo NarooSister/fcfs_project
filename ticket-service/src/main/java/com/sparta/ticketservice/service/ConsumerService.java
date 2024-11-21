@@ -3,14 +3,12 @@ package com.sparta.ticketservice.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sparta.ticketservice.entity.Ticket;
 import com.sparta.ticketservice.event.StockDecrEvent;
-import com.sparta.ticketservice.event.StockIncrEvent;
 import com.sparta.ticketservice.exception.TicketBusinessException;
 import com.sparta.ticketservice.exception.TicketServiceErrorCode;
 import com.sparta.ticketservice.repository.TicketRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -46,8 +44,6 @@ public class ConsumerService {
         } catch (Exception e) {
             log.error("Failed to deserialize message: {}", message, e);
         }
-
-
     }
 
     // 재고 복구 이벤트 처리

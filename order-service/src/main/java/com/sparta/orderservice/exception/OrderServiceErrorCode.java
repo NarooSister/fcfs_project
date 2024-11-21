@@ -22,10 +22,6 @@ public enum OrderServiceErrorCode {
     INVALID_ORDER_REQUEST(HttpStatus.NOT_IMPLEMENTED, "O-015", "유효하지 않은 OrderRequest 입니다."),
     PRICE_MISMATCH(HttpStatus.BAD_REQUEST, "O-016", "가격이 정확하지 않습니다.");
 
-
-
-
-
     private final HttpStatus httpStatus;
     private final String code;
     private final String message;

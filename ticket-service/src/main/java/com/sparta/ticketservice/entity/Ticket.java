@@ -6,8 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,7 +14,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Ticket{
+public class Ticket {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -44,14 +42,14 @@ public class Ticket{
     private Type type;
 
 
-
-    public enum Status{
+    public enum Status {
         PENDING,    // 준비 중
         ON_SALE,    // 판매 중
         SOLD_OUT,   // 판매 완료(재고 소진)
         EXPIRED     // 판매 만료(기한 만료)
     }
-    public enum Type{
+
+    public enum Type {
         GENERAL,    // 일반 티켓
         SCHEDULED   // 시간대별 티켓
     }

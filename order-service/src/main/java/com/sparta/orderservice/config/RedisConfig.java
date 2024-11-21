@@ -1,7 +1,6 @@
 package com.sparta.orderservice.config;
 
 import com.sparta.orderservice.dto.CartItem;
-import com.sparta.orderservice.dto.PendingOrder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -10,6 +9,7 @@ import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+
 @Configuration
 public class RedisConfig {
     @Bean
@@ -38,6 +38,7 @@ public class RedisConfig {
     public HashOperations<String, String, CartItem> hashOperations(RedisTemplate<String, Object> redisTemplate) {
         return redisTemplate.opsForHash();
     }
+
     @Bean
     public HashOperations<String, String, String> pendingOrderHashOperations(RedisTemplate<String, Object> redisTemplate) {
         return redisTemplate.opsForHash();

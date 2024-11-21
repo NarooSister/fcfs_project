@@ -61,7 +61,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
         redisTemplate.opsForValue().set(username + ":" + sessionId, refresh, 86400000L, TimeUnit.MILLISECONDS);
 
         //응답 설정
-        response.setHeader("Authorization", "Bearer " +access);   // 응답 해더에 넣음
+        response.setHeader("Authorization", "Bearer " + access);   // 응답 해더에 넣음
         response.addCookie(createCookie("refresh", refresh));   // 응답 쿠키에 넣음
         response.setStatus(HttpStatus.OK.value());
     }
@@ -82,7 +82,7 @@ public class LoginFilter extends UsernamePasswordAuthenticationFilter {
     private Cookie createCookie(String key, String value) {
 
         Cookie cookie = new Cookie(key, value);
-        cookie.setMaxAge(24*60*60);
+        cookie.setMaxAge(24 * 60 * 60);
         //cookie.setSecure(true);   //Https로 바꾸면
         //cookie.setPath("/");
         cookie.setHttpOnly(true);   //js에서 접근 못하도록 막음

@@ -22,10 +22,11 @@ public class ApiController {
         ticketService.restoreStock(ticketId, quantity);
         return ResponseEntity.ok().build();
     }
+
     @GetMapping("/{ticketId}")
     public ResponseEntity<TicketDto> readTicket(
             @PathVariable("ticketId") Long ticketId
-    ){
+    ) {
         TicketDto ticket = ticketService.readTicket(ticketId);
         return ResponseEntity.ok(ticket);
     }

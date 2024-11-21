@@ -63,6 +63,7 @@ public class CartService {
         }
         return cartItem;
     }
+
     private Map<String, CartItem> validateCartNotEmpty(String username) {
         Map<String, CartItem> cart = cartRepository.getCart(username);
         if (cart.isEmpty()) {

@@ -19,12 +19,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-//    // 2. 각 서비스에서 발생한 비즈니스 예외 처리 (msa로 변경한 뒤)
-//    @ExceptionHandler(BusinessException.class)
-//    public ResponseEntity<ApiErrorResponse> handleBusinessException(BusinessException e) {
-//        return buildErrorResponse(e.getErrorCode());
-//    }
-
     // 2. 유저 서비스에서 발생한 비즈니스 예외 처리
     @ExceptionHandler(UserBusinessException.class)
     public ResponseEntity<ApiErrorResponse> handleUserBusinessException(UserBusinessException e) {

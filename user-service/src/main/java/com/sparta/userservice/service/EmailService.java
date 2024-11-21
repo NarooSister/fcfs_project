@@ -59,7 +59,7 @@ public class EmailService {
     }
 
     // 이메일 확인
-    public void existsByEmail(String email){
+    public void existsByEmail(String email) {
         // 이메일 암호화
         String encryptedEmail = encryptionService.encrypt(email);
         // 이메일이 이미 등록되어 있는지 확인

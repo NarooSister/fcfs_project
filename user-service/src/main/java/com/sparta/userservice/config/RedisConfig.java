@@ -7,6 +7,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+
 @Configuration
 public class RedisConfig {
     @Bean
@@ -20,9 +21,4 @@ public class RedisConfig {
         template.setValueSerializer(new StringRedisSerializer());
         return template;
     }
-
-//    @Bean
-//    public HashOperations<String, String, CartItem> hashOperations(RedisTemplate<String, Object> redisTemplate) {
-//        return redisTemplate.opsForHash();
-//    }
 }

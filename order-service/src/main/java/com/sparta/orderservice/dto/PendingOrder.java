@@ -16,6 +16,7 @@ public class PendingOrder {
     private Integer quantity;
     private PendingStatus status;
     private LocalDateTime createdAt;
+
     public enum PendingStatus {
         PENDING,
         COMPLETED,

@@ -13,6 +13,7 @@ import java.util.List;
 @RequestMapping("/ticket")
 public class TicketController {
     private final TicketService ticketService;
+
     @GetMapping("/test")
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("User service is reachable through Gateway!");
@@ -28,7 +29,7 @@ public class TicketController {
     @GetMapping("/{ticketId}")
     public ResponseEntity<TicketDto> readTicket(
             @PathVariable("ticketId") Long ticketId
-    ){
+    ) {
         TicketDto ticket = ticketService.readTicket(ticketId);
         return ResponseEntity.ok(ticket);
     }
