@@ -238,6 +238,18 @@ public class OrderService {
 
     //========================재고 확인 api==========================
 
+    // DB에서 재고 조회
+//    public int getCurrentStock(Long ticketId) {
+//        TicketDto ticket = ticketClient.getTicketById(ticketId);
+//
+//        if (ticket == null || ticket.stock() <= 0) {
+//            return 0; // 티켓이 없거나 재고가 없으면 0 반환
+//        }
+//
+//        return ticket.stock();
+//    }
+
+    // Redis 캐싱 후 재고 조회
     // 현재 사용 가능한 재고 조회 (모든 예약 재고 제외)
     public int getCurrentStock(Long ticketId) {
         String stockKey = generateStockKey(ticketId);
