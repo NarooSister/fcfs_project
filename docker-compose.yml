@@ -95,7 +95,6 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - db
-      -
       - eureka-server
     ports:
       - "9003:9003"
