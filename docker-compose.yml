@@ -95,6 +95,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - db
+      -
       - eureka-server
     ports:
       - "9003:9003"
@@ -135,11 +136,6 @@ services:
       - "--collation-server=utf8mb4_unicode_ci"
     networks:
       - msa-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'   # CPU 50%
-          memory: 256M    # 메모리 512MB
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -157,11 +153,6 @@ services:
       - .env
     networks:
       - msa-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'   # CPU 25%
-          memory: 512M    # 메모리 256MB
 
 volumes:
   mysql-data:
