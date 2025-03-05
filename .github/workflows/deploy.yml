@@ -13,6 +13,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # 🔹 SSH 키를 복원하고 올바른 권한 설정을 해줘야 SSH 접속 가능
+      - name: Restore SSH Private Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.NCP_SSH_PRIVATE_KEY }}" | base64 --decode > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.NCP_SERVER_IP }} >> ~/.ssh/known_hosts
+
+      # 🔹 SSH 연결 확인 (테스트용)
+      - name: Test SSH Connection
+        run: ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.NCP_SSH_USERNAME }}@${{ secrets.NCP_SERVER_IP }} "echo 'SSH Connected Successfully'"
+
+      # 🔹 NCP 서버에 SSH로 접속하여 배포 실행
       - name: Deploy to NCP Server via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -21,6 +34,7 @@ jobs:
           key: ${{ secrets.NCP_SSH_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/fcfsproject
+            echo "${{ secrets.PRODUCTION_ENV }}" > .env
             git pull origin main  # 최신 코드 가져오기
             docker-compose down  # 기존 컨테이너 종료
             docker-compose up -d --build  # 최신 코드로 컨테이너 재실행
