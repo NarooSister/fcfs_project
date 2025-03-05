@@ -140,6 +140,11 @@ services:
         limits:
           cpus: '0.50'   # CPU 50%
           memory: 256M    # 메모리 512MB
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis
   redis:
