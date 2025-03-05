@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +38,7 @@ public class OrderService {
     private final KafkaTemplate<String, StockIncrEvent> kafkaIncrTemplate;
     private final RedisTemplate<String, Integer> redisTemplate;
     private final RedisTemplate<String, Object> pendingOrderRedisTemplate;
+    private final RedisTemplate<String, String> lockRedisTemplate; // 분산 락용 RedisTemplate
 
     private static final String STOCK_RESTORE_TOPIC = "stock-restore-topic";
 
@@ -72,6 +74,71 @@ public class OrderService {
     }
 
     //========================== 결제 화면 진입 ==========================================
+    public List<String> createPendingOrderWithLock(String username, OrderRequestDto orderRequestDto) {
+        List<String> pendingOrderIds = new ArrayList<>();
+        System.out.println("@@@@@@@@@@@@@@@@@@@@@제대로 됌@@@@@@@@@@@@@@@@@@@@@@@");
+        if (orderRequestDto == null || orderRequestDto.getOrderedTickets().isEmpty()) {
+            throw new OrderBusinessException(OrderServiceErrorCode.INVALID_ORDER_REQUEST);
+        }
+
+        List<Long> ticketIds = orderRequestDto.getOrderedTickets().stream()
+                .map(OrderedTicketDto::getTicketId)
+                .toList();
+
+        Map<Long, Integer> ticketPrices = ticketClient.getTicketPrices(ticketIds);
+
+        for (OrderedTicketDto orderedTicket : orderRequestDto.getOrderedTickets()) {
+            if (orderedTicket.getTicketId() == null || orderedTicket.getQuantity() == null || orderedTicket.getQuantity() <= 0) {
+                throw new OrderBusinessException(OrderServiceErrorCode.PRICE_MISMATCH);
+            }
+
+            String uuid = UUID.randomUUID().toString();
+            String lockKey = "lock:stock:" + orderedTicket.getTicketId();
+            String stockKey = generateStockKey(orderedTicket.getTicketId());
+            String reservedStockKey = "reserved_stock:" + orderedTicket.getTicketId() + ":" + uuid;
+
+            try {
+                // 락 획득
+                boolean isLockAcquired = Boolean.TRUE.equals(lockRedisTemplate.opsForValue().setIfAbsent(lockKey, "LOCK", 10, TimeUnit.SECONDS));
+                if (!isLockAcquired) {
+                    throw new OrderBusinessException(OrderServiceErrorCode.CONCURRENT_ACCESS);
+                }
+
+                // 재고 확인 및 예약
+                Integer totalStock = redisTemplate.opsForValue().get(stockKey);
+                Integer reservedStock = redisTemplate.opsForValue().get(reservedStockKey);
+                int availableStock = (totalStock != null ? totalStock : 0) - (reservedStock != null ? reservedStock : 0);
+
+                if (availableStock < orderedTicket.getQuantity()) {
+                    System.out.println("availableStock:" + availableStock);
+                    System.out.println("orderedTicket = " + orderedTicket.getQuantity());
+                    throw new OrderBusinessException(OrderServiceErrorCode.INSUFFICIENT_STOCK);
+                }
+
+                redisTemplate.opsForValue().increment(reservedStockKey, orderedTicket.getQuantity());
+                redisTemplate.expire(reservedStockKey, 10, TimeUnit.MINUTES); // TTL 설정
+
+                // 예비 주문 생성
+                PendingOrder pendingOrder = PendingOrder.builder()
+                        .username(username)
+                        .ticketId(orderedTicket.getTicketId())
+                        .price(ticketPrices.get(orderedTicket.getTicketId()) * orderedTicket.getQuantity())
+                        .quantity(orderedTicket.getQuantity())
+                        .createdAt(LocalDateTime.now())
+                        .status(PendingOrder.PendingStatus.PENDING)
+                        .build();
+
+                pendingOrderRepository.savePendingOrder(uuid, pendingOrder);
+                pendingOrderIds.add(uuid);
+
+            } finally {
+                // 락 해제
+                lockRedisTemplate.delete(lockKey);
+            }
+        }
+
+        return pendingOrderIds;
+    }
 
     public List<String> createPendingOrder(String username, OrderRequestDto orderRequestDto) {
         List<String> pendingOrderIds = new ArrayList<>();

@@ -24,6 +24,19 @@ public class RedisConfig {
         return template;
     }
 
+//    @Bean
+//    public RedisTemplate<String, String> lockRedisTemplate(RedisConnectionFactory connectionFactory) {
+//        RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
+//        redisTemplate.setConnectionFactory(connectionFactory);
+//
+//        // Key Serializer 설정
+//        redisTemplate.setKeySerializer(new org.springframework.data.redis.serializer.StringRedisSerializer());
+//        // Value Serializer 설정
+//        redisTemplate.setValueSerializer(new org.springframework.data.redis.serializer.StringRedisSerializer());
+//
+//        return redisTemplate;
+//    }
+
     // RedisTemplate<String, Integer> 빈 추가
     @Bean
     public RedisTemplate<String, Integer> integerRedisTemplate(RedisConnectionFactory redisConnectionFactory) {

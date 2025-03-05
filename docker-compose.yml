@@ -23,8 +23,6 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - msa-network
 
@@ -39,7 +37,6 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-      KAFKA_CLUSTERS_0_READONLY: "false"
     networks:
       - msa-network
 
@@ -68,10 +65,8 @@ services:
       - eureka-server
     ports:
       - "9000:9000"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://admin:1234@eureka-server:8761/eureka
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+    env_file:
+      - .env
     networks:
       - msa-network
 
@@ -87,13 +82,8 @@ services:
       - eureka-server
     ports:
       - "9001:9001"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://admin:1234@eureka-server:8761/eureka
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+    env_file:
+      - .env
     networks:
       - msa-network
 
@@ -109,12 +99,8 @@ services:
       - eureka-server
     ports:
       - "9003:9003"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://admin:1234@eureka-server:8761/eureka
+    env_file:
+      - .env
     networks:
       - msa-network
 
@@ -130,24 +116,16 @@ services:
       - eureka-server
     ports:
       - "9002:9002"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://admin:1234@eureka-server:8761/eureka
-
+    env_file:
+      - .env
     networks:
       - msa-network
 
   database:
     container_name: db
     image: mysql:latest
-    environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_ROOT_HOST: '%'
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      TZ: 'Asia/Seoul'
+    env_file:
+      - .env
     ports:
       - "3306:3306"
     volumes:
@@ -170,9 +148,9 @@ services:
     image: redis:latest
     ports:
       - "6379:6379"
-    environment:
-      - REDIS_PASSWORD=${SPRING_REDIS_PASSWORD}
     command: [ "redis-server", "--requirepass", "${SPRING_REDIS_PASSWORD}"   ]  # Redis 비밀번호 설정
+    env_file:
+      - .env
     networks:
       - msa-network
     deploy:

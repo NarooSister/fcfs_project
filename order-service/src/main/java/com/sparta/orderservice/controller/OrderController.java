@@ -38,7 +38,7 @@ public class OrderController {
 
     @PostMapping("/reserve")
     public ResponseEntity<List<String>> createPendingOrder(@RequestBody OrderRequestDto orderRequestDto, UserInfo userInfo) {
-        List<String> pendingOrderIds = orderService.createPendingOrder(userInfo.username(), orderRequestDto);
+        List<String> pendingOrderIds = orderService.createPendingOrderWithLock(userInfo.username(), orderRequestDto);
         return ResponseEntity.ok(pendingOrderIds); // 예비 주문 ID 목록 반환
     }
 

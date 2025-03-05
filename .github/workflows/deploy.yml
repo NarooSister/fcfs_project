@@ -1,0 +1,26 @@
+name: Deploy to NCP Server
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 푸시될 때 실행
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Deploy to NCP Server via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.NCP_SERVER_IP }}
+          username: ${{ secrets.NCP_SSH_USERNAME }}
+          key: ${{ secrets.NCP_SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/ubuntu/fcfsproject
+            git pull origin main  # 최신 코드 가져오기
+            docker-compose down  # 기존 컨테이너 종료
+            docker-compose up -d --build  # 최신 코드로 컨테이너 재실행

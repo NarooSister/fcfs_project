@@ -20,7 +20,8 @@ public enum OrderServiceErrorCode {
     INVALID_PENDING_ORDER_STATUS(HttpStatus.NOT_FOUND, "O-013", "PendingOrder가 유효하지 않습니다."),
     INVALID_PENDING_STOCK(HttpStatus.NOT_FOUND, "O-014", "예약된 재고가 없습니다."),
     INVALID_ORDER_REQUEST(HttpStatus.NOT_IMPLEMENTED, "O-015", "유효하지 않은 OrderRequest 입니다."),
-    PRICE_MISMATCH(HttpStatus.BAD_REQUEST, "O-016", "가격이 정확하지 않습니다.");
+    PRICE_MISMATCH(HttpStatus.BAD_REQUEST, "O-016", "가격이 정확하지 않습니다."),
+    CONCURRENT_ACCESS(HttpStatus.BAD_REQUEST, "O-017", "락을 획득하지 못했습니다");
 
     private final HttpStatus httpStatus;
     private final String code;
