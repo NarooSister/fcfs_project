@@ -31,6 +31,6 @@ jobs:
           script: |
             cd /home/ubuntu/fcfsproject
             echo "${{ secrets.PRODUCTION_ENV }}" > .env
-            git pull origin main  # 최신 코드 가져오기
-            docker-compose down  # 기존 컨테이너 종료
-            docker-compose up -d --build  # 최신 코드로 컨테이너 재실행
+            git pull origin main
+            docker-compose down
+            docker-compose up -d --build
