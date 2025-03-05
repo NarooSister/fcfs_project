@@ -3,7 +3,7 @@ name: Deploy to NCP Server
 on:
   push:
     branches:
-      - main  # main 브랜치에 푸시될 때 실행
+      - main
 
 jobs:
   deploy:
