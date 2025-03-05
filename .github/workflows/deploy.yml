@@ -29,6 +29,7 @@ jobs:
           username: ${{ secrets.NCP_SSH_USERNAME }}
           key: ${{ secrets.NCP_SSH_PRIVATE_KEY }}
           script: |
+            set -e  # 오류 발생 시 즉시 중단
             cd /home/ubuntu/fcfsproject
             echo "${{ secrets.PRODUCTION_ENV }}" > .env
             git pull origin main
