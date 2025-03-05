@@ -1,4 +1,3 @@
 .env
 **/application.yml
 **/application-dev.yml
-**/application-docker.yml
