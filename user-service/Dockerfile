@@ -1,27 +1,23 @@
-# 1. JDK 21을 포함한 기본 이미지 사용
-FROM openjdk:21-jdk AS build
+# (1) 기본 이미지 정의 (빌드 단계에서만 사용)
+FROM openjdk:21-jdk-slim AS builder
 
-# 2. 작업 디렉토리 설정
+# (2) 작업 디렉터리 설정 (/app 폴더에서 작업 수행)
 WORKDIR /app
 
-# 3. 프로젝트 소스 코드 복사
+# (3) 현재 프로젝트의 모든 파일을 Docker 이미지 내 /app 폴더로 복사
 COPY . .
 
-# 4. 실행 권한 부여 (`gradlew` 실행 가능하도록 설정)
+# (3-1) Gradle Wrapper 실행권한 설정 (필수)
 RUN chmod +x ./gradlew
 
-# 5. 환경 변수 설정 (xargs 문제 방지)
-ENV GRADLE_OPTS "-Dorg.gradle.daemon=false"
+# (3) Gradle 빌드 수행
+RUN ./gradlew clean build -x test
 
-# 6. Gradle 빌드 실행 (테스트 제외)
-RUN ./gradlew clean build -x test --no-daemon --stacktrace || true
+# (4) 런타임 환경을 위한 새 이미지 설정 (경량 이미지 사용)
+FROM openjdk:21-jdk-slim
 
-# 7. 런타임 JDK 21 사용
-FROM openjdk:21-jdk
-WORKDIR /app
+# (5) 위의 빌드된 jar 파일을 현재 이미지로 복사
+COPY --from=builder /app/build/libs/*.jar app.jar
 
-# 8. 빌드된 JAR 복사
-COPY --from=build /app/build/libs/*.jar /app/app.jar
-
-# 9. 컨테이너 실행 시 JAR 실행
+# (5) 컨테이너가 실행될 때 JAR 파일 실행
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
