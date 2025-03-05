@@ -20,9 +20,6 @@ jobs:
           echo "${{ secrets.NCP_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.NCP_SERVER_IP }} >> ~/.ssh/known_hosts
-      # 🔹 SSH 연결 확인 (테스트용)
-      - name: Test SSH Connection
-        run: ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.NCP_SSH_USERNAME }}@${{ secrets.NCP_SERVER_IP }} "echo 'SSH Connected Successfully'"
 
       # 🔹 NCP 서버에 SSH로 접속하여 배포 실행
       - name: Deploy to NCP Server via SSH
